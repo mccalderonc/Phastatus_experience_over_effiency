@@ -21,7 +21,6 @@ Colonies have been renamed as colony 1, 2 and 3. Original names are
 La Gruta = colony 1
 Aj cave = colony 2
 Muddy cave= colony 3
-```
 
 
 
