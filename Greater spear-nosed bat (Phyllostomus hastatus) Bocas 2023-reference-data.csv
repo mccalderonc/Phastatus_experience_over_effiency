@@ -1,0 +1,38 @@
+tag-id,animal-id,animal-taxon,deploy-on-date,deploy-off-date,animal-comments,animal-group-id,animal-marker-id,animal-mass,animal-sex,attachment-type,tag-manufacturer-name,tag-mass,tag-model
+PHYL35,989001041827579,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,97.24,LG-Blue,1865,146.0,m,glue,Technosmart,4.2,AxyTrek
+PHYL33,989001041827567,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,93.2,LG-Blue,1856,126.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL32,989001041827635,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,93.2,LG-Blue,1864,118.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL4,989001041827544,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,91.46,LG-males,,135.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL3,989001041827577,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,91,LG-Blue,,112.0,f,glue,Technosmart,4.8,AxyTrek
+PHYL31,989001041827597,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,92.05,LG-Blue,1857,111.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL39,989001041827564,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,95.39,LG-Blue,1862,150.0,m,glue,Technosmart,4.2,AxyTrek
+PHYL1,989001041827594,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-20 03:00:00.000,91.77,LG-males,,126.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL2,989001041827558,Phyllostomus hastatus,2023-08-11 00:00:00.000,,94.1,LG-males,,120.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL5,989001041827582,Phyllostomus hastatus,2023-08-11 00:00:00.000,,92.51,LG-males,,135.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL30,989001041827555,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,94.64,LG-Blue,1859,113.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL34,989001041827595,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,89.43,LG-Blue,1863,110.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL36,989001041827609,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,90.55,LG-Blue,1854,128.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL29,989001041827628,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,93.3,LG-Blue,1861,123.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL40,989001041827548,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,90.6,LG-Blue,1860,112.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL37,989001041827638,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,91.07,LG-Blue,1855,110.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL6,989001041827624,Phyllostomus hastatus,2023-08-11 00:00:00.000,,93.29,LG-males,,135.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL38,989001041827571,Phyllostomus hastatus,2023-08-11 00:00:00.000,2023-08-18 03:00:00.000,93.45,LG-Blue,1858,117.0,f,glue,Technosmart,4.2,AxyTrek
+PHYL25,989001041827573,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,89.56,MT-1,,172.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL23,989001041827640,Phyllostomus hastatus,2023-08-13 00:00:00.000,,93.98,MT-2,,138.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL11,989001041827563,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,91.8,MT-1,,136.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL28,989001041827568,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,93.89,MT-1,,137.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL10,989001041827622,Phyllostomus hastatus,2023-08-13 00:00:00.000,,93.02,MT-3,,174.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL15,989001041827629,Phyllostomus hastatus,2023-08-13 00:00:00.000,,89.51,MT-1,,156.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL9,989001041827562,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,92.06,MT-3,,170.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL24,989001041827620,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,92.39,MT-2,,126.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL22,989001041827612,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,92.83,MT-1,,142.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL20,989001041827615,Phyllostomus hastatus,2023-08-13 00:00:00.000,,94.02,MT-3,,179.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL27,989001041827592,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,91.7,MT-3,,127.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL21,989001041827639,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,93.91,MT-2,,180.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL19,989001041827578,Phyllostomus hastatus,2023-08-13 00:00:00.000,,92.6,MT-3,,122.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL12,989001041827557,Phyllostomus hastatus,2023-08-13 00:00:00.000,,93.47,MT-1,,176.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL16,989001041827637,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,95.94,MT-1,,146.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL7,989001041827588,Phyllostomus hastatus,2023-08-13 00:00:00.000,2023-08-19 03:00:00.000,95.37,MT-1,,173.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL8,989001041827569,Phyllostomus hastatus,2023-08-13 00:00:00.000,,93.4,MT-1,,134.0,m,glue,Technosmart,4.8,AxyTrek
+PHYL14,989001041827601,Phyllostomus hastatus,2023-08-13 00:00:00.000,,93.02,MT-3,,177.0,m,glue,Technosmart,4.8,AxyTrek
+,7577,Phyllostomus hastatus,,,,,,,,,,,

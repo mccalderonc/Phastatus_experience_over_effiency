@@ -1,0 +1,57 @@
+tag-id,animal-id,animal-taxon,deploy-on-date,deploy-off-date,animal-comments,animal-life-stage,animal-mass,animal-reproductive-condition,animal-sex,attachment-type,tag-manufacturer-name,tag-mass,tag-model
+PH_ST_011,8041CD3,Phyllostomus hastatus,,,hole3-ajcave,adult,130.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_014,808EFBC,Phyllostomus hastatus,,,hole1-ajcave,adult,122.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_018,7CDB4A2,Phyllostomus hastatus,,,haremC2-lagruta,adult,119.0,pregnant,f,glue,TechnoSmart,6.0,Axy-Trek
+PH_ST_024,7CDD33D,Phyllostomus hastatus,,,hole3-ajcave,adult,143.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_052,7CDE037,Phyllostomus hastatus,,,yellow-muddycave,adult,126.0,no scr,m,glue,TechnoSmart,6.0,Axy-Trek
+PH_ST_062,8042621,Phyllostomus hastatus,,,pink-muddycave,adult,128.0,plac,f,glue,TechnoSmart,6.0,Axy-Trek
+PH_ST_056,7CDFFFA,Phyllostomus hastatus,,,blue-muddycave,adult,128.0,pregnant,f,glue,TechnoSmart,6.0,Axy-Trek
+PH_ST_072,8042954,Phyllostomus hastatus,,,pink-muddycave,adult,114.0,pregnant,f,glue,TechnoSmart,6.0,Axy-Trek
+PH_ST_074,7CE0C49,Phyllostomus hastatus,,,hole1-ajcave,adult,131.0,no scr,m,glue,TechnoSmart,,Axy-Trek
+PH_ST_079,7CDDD46,Phyllostomus hastatus,,,hole1-ajcave,adult,135.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_080,7CE02AF,Phyllostomus hastatus,,,hole3-ajcave,adult,136.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_081,7CDBB60,Phyllostomus hastatus,,,hole2-ajcave,adult,110.0,nulli,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_096,7CDFB47,Phyllostomus hastatus,,,haremB-lagruta,adult,101.0,nulli,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_098,8043C3F,Phyllostomus hastatus,,,hole1-ajcave,adult,119.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_100,7CDADF6,Phyllostomus hastatus,,,hole1-ajcave,adult,117.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_103,7CDA644,Phyllostomus hastatus,,,hole2-ajcave,adult,116.0,nulli,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_112,7CDD887,Phyllostomus hastatus,,,hole3-ajcave,adult,133.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_113,8042D3E,Phyllostomus hastatus,,,hole3-ajcave,adult,131.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_117,8041B2F,Phyllostomus hastatus,,,haremC1C2-lagruta,adult,140.0,pregnant,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_120,7CE0B21,Phyllostomus hastatus,,,hole3-ajcave,adult,123.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_TS_004,8042A9F,Phyllostomus hastatus,,,hole1-ajcave,adult,91.0,nulli,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_TS_016,7CDE8A3,Phyllostomus hastatus,,,hole1-ajcave,adult,130.0,no scr,m,glue,TechnoSmart,,Axy-Trek
+PH_TS_029,7CDB421,Phyllostomus hastatus,,,pink-muddycave,adult,119.0,pregnant,f,glue,TechnoSmart,6.0,Axy-Trek
+PH_TS_083,8043BF1,Phyllostomus hastatus,,,hole3-ajcave,adult,128.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_TS_046,7CDC1EE,Phyllostomus hastatus,,,haremC2-lagruta,adult,121.0,pregnant,f,glue,TechnoSmart,7.0,Axy-Trek
+PH_TS_085,7CDA805,Phyllostomus hastatus,,,hole3-ajcave,adult,128.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_121,804B8F9,Phyllostomus hastatus,,,hole1-ajcave,adult,114.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+38506737_G,7CDF57C,Phyllostomus hastatus,,,haremG-lagruta,adult,140.0,no scr,m,glue,vesper,5.5,
+32501535_C,804263D,Phyllostomus hastatus,,,haremC1-lagruta,juvenil,121.0,no scr,m,glue,vesper,8.67,
+23506B4E_G,7CE04A9,Phyllostomus hastatus,,,haremG-lagruta,adult,118.0,postlac,f,glue,vesper,6.0,
+53506935_G,7CDEB8C,Phyllostomus hastatus,,,haremG-lagruta,adult,120.0,postlac,f,glue,vesper,6.0,
+0C506E35_G,804BA70,Phyllostomus hastatus,,,haremG-lagruta,adult,110.0,postlac,f,glue,vesper,6.0,
+39506037_G,7CDF62C,Phyllostomus hastatus,,,haremG-lagruta,adult,115.0,nulli,f,glue,vesper,6.0,
+2E500235_G,7CDF3E7,Phyllostomus hastatus,,,haremG-lagruta,adult,111.0,postlac,f,glue,vesper,6.0,
+0C506E35_C,808FOF6,Phyllostomus hastatus,,,haremC1-lagruta,juvenil,134.0,no scr,m,glue,vesper,8.45,
+38506D37_D,7CE0ADC,Phyllostomus hastatus,,,haremC1D-lagruta,adult,138.0,nulli,m,glue,vesper,5.88,
+38506D37_C,804BD80,Phyllostomus hastatus,,,haremC1D-lagruta,adult,99.0,lact,f,glue,vesper,8.52,
+31507235_C,8041A1B,Phyllostomus hastatus,,,haremC1-lagruta,adult,95.0,lact,f,glue,vesper,6.11,
+37507537_D,74DDA80,Phyllostomus hastatus,,,haremD-lagruta,adult,112.0,lact,f,glue,vesper,6.19,
+2C500235_D,7CDE45C,Phyllostomus hastatus,,,haremD-lagruta,adult,132.0,no scr,m,glue,vesper,6.36,
+37506237_D,804BD80,Phyllostomus hastatus,,,haremC1D-lagruta,adult,102.0,lact,f,glue,vesper,6.29,
+2C507735_G,7CE11AF,Phyllostomus hastatus,,,haremG-lagruta,adult,111.0,nulli,f,glue,vesper,6.0,
+5C500E4E_C,8042CBC,Phyllostomus hastatus,,,haremC1C2-lagruta,juvenil,119.0,no scr,m,glue,vesper,8.59,
+31507235_G,7CE0EAE,Phyllostomus hastatus,,,haremG-lagruta,adult,120.0,postlac,f,glue,vesper,6.0,
+2D507235_G,7CCA9E6,Phyllostomus hastatus,,,haremG-lagruta,adult,114.0,nulli,f,glue,vesper,6.0,
+38500337_C,808F4A6,Phyllostomus hastatus,,,haremC1-lagruta,adult,91.0,lact,f,glue,vesper,6.04,
+53507135_C,8041B2F,Phyllostomus hastatus,,,haremC1C2-lagruta,adult,131.0,lact,f,glue,vesper,8.71,
+38500437_D,7CDD7A5,Phyllostomus hastatus,,,haremD-lagruta,adult,131.0,no scr,m,glue,vesper,6.12,
+22507B4E_D,71A0D95,Phyllostomus hastatus,,,haremD-lagruta,adult,120.0,postlac,f,glue,vesper,5.88,
+0D501435_C,804C0ED,Phyllostomus hastatus,,,haremC1-lagruta,adult,119.0,lact,f,glue,vesper,8.52,
+39500E37_D,7250872,Phyllostomus hastatus,,,haremD-lagruta,adult,138.0,postlac,f,glue,vesper,5.89,
+2C501A35_G,7CDC7CF,Phyllostomus hastatus,,,haremG-lagruta,adult,110.0,postlac,f,glue,vesper,6.0,
+PH_TS_039,8042CBC,Phyllostomus hastatus,,,haremC1C2-lagruta,adult,117.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_114,8042BEA,Phyllostomus hastatus,,,hole1-ajcave,adult,131.0,no scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_030,8042895,Phyllostomus hastatus,,,haremC2-lagruta,adult,126.0,scr,m,glue,TechnoSmart,7.0,Axy-Trek
+PH_ST_049,7CE0385,Phyllostomus hastatus,,,pink-muddycave,adult,129.0,,f,glue,TechnoSmart,7.0,Axy-Trek
