@@ -17,7 +17,7 @@ The code follows as:
 10. Figure_1
 11. FigureS2
 
-There is an additional file needed for the code number 9, which is included in the repository.
+Additional .csv files are included in this repository.
 
 Colonies have been renamed as colony 1, 2 and 3. Original names are
 - La Gruta = colony 1
