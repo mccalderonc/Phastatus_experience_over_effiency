@@ -14,6 +14,7 @@ library(lubridate)
 library(ggmap)
 library(scales)
 library(dplyr)
+library(lme4)
 ```
 
 ## Load data and prepare it
@@ -91,12 +92,19 @@ maxddist_cave <- maxdist_c %>%
 
 ## Test distance with non-parametric test
 
-```{r}
-# kruskal wallis test per cave
-kruskal.test(maxNSD_df_id$mean_dist~maxNSD_df_id$year_cave)
-pairwise.wilcox.test(maxNSD_df_id$mean_dist, maxNSD_df_id$year_cave,
-                     p.adjust.method = "BH")
+useful website https://zian999.github.io/posts/2019/lrt_pvalues_for_glmer/
 
+```{r}
+m1 <- glmer(mean_dist~year_cave+ (1|tag_local_identifier), data=maxNSD_df_id, family=Gamma(link = "identity"))
+summary(m1)
+# Post-hoc analysis
+library (multcomp)
+summary(glht(m1, mcp(year_cave="Tukey")))
+
+# the non- parametric version with kruskal wallis test per cave
+# kruskal.test(maxNSD_df_id$mean_dist~maxNSD_df_id$year_cave)
+# pairwise.wilcox.test(maxNSD_df_id$mean_dist, maxNSD_df_id$year_cave,
+#                      p.adjust.method = "BH")
 ```
 
 ## On and Off island foraging
