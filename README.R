@@ -1,5 +1,5 @@
 ### Experience over efficiency: Consistent long-distance foraging flights across years and seasons at colony level in a Neotropical bat
-```{r}
+
 The code presents the analysis workflow to test how Phyllostomus hastatus show consistent foraging flights across years and colonies. The code requires personal log in information of movebank and stadia maps.
 
 The code follows as:
