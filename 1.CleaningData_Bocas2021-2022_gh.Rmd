@@ -1,0 +1,249 @@
+---
+title: "Cleaning data Bocas 201-2022"
+output: html_document
+date: '2024-02-16'
+author: "Camila Calderon"
+---
+
+## load packages
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse,data.table, move, lubridate, cowplot, ggplot2, doBy, dplyr,  ggpubr, spatialrisk, rgdal, janitor, ISLR)
+```
+
+## Loading movebank data from 2021-2022
+
+```{r data from movebank}
+# download from movebank
+me <- movebankLogin(username="", password="")
+studyId <- getMovebankID("Greater spear-nosed bat (Phyllostomus hastatus) in Bocas del Toro 2021-2022",me)
+batsmove<- getMovebankData(study=studyId, login=me)
+batsdf <- as.data.frame(batsmove)
+unique(batsdf$tag_local_identifier)
+
+# remove data from April that come from bats in the cage
+batsdf <- batsdf[!c(batsdf$tag_local_identifier=="PH_FC_01" | batsdf$tag_local_identifier== "PH_FC_02" | batsdf$tag_local_identifier== "PH_FC_03" |batsdf$tag_local_identifier== "PH_FC_04"),]
+
+# save data
+save(batsmove, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus2021-2022.RData")
+
+# open reference data downloaded from movebank
+dfreference <- fread("/Users/ccalderon/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Greater spear-nosed bat (Phyllostomus hastatus) in Bocas del Toro 2021-2022-reference-data.csv") %>% clean_names
+
+```
+
+## Adding columns with sex and group cave information
+
+```{r  editing data, results='hide'}
+# change the ST of the tag local identifier of some individuals to TS
+batsdf$tag_local_identifier <- gsub('ST', 'TS', batsdf$tag_local_identifier)
+unique(batsdf$tag_local_identifier)
+
+# add sex information to GPS table
+males= filter(dfreference,animal_sex=="m")
+male = unique(males$tag_id)
+female = filter(dfreference, animal_sex=="f")
+fem= unique(female$tag_id)
+
+batsdf$animal_sex <- ""
+batsdf$animal_sex[which(batsdf$tag_local_identifier== "PH_TS_011" | batsdf$tag_local_identifier== "PH_TS_014" | batsdf$tag_local_identifier==  "PH_TS_024" | batsdf$tag_local_identifier==  "PH_TS_052" | batsdf$tag_local_identifier== "PH_TS_074" | batsdf$tag_local_identifier==  "PH_TS_079" | batsdf$tag_local_identifier== "PH_TS_080" | batsdf$tag_local_identifier== "PH_TS_098" | batsdf$tag_local_identifier== "PH_TS_100" | batsdf$tag_local_identifier==  "PH_TS_112" | batsdf$tag_local_identifier== 
+"PH_TS_113" |batsdf$tag_local_identifier== "PH_TS_120" | batsdf$tag_local_identifier== "PH_TS_016"| batsdf$tag_local_identifier==  "PH_TS_083" | batsdf$tag_local_identifier== "PH_TS_085"| batsdf$tag_local_identifier=="PH_TS_121"| batsdf$tag_local_identifier==  "38506737_G" | batsdf$tag_local_identifier== "32501535_C"| batsdf$tag_local_identifier=="0C506E35_C"| batsdf$tag_local_identifier== "38506D37_D"| batsdf$tag_local_identifier=="2C500235_D"|batsdf$tag_local_identifier=="5C500E4E_C"| batsdf$tag_local_identifier=="38500437_D"| batsdf$tag_local_identifier== "PH_TS_030"| batsdf$tag_local_identifier== "PH_TS_114")] <- "m"
+
+# bats with blanks are females
+batsdf$animal_sex[which(batsdf$animal_sex=="")] <- "f"
+unique(batsdf$animal_sex)
+
+# add the group-cave info
+unique(dfreference$animal_comment)
+table(dfreference$animal_comments)
+
+batsdf$cave_group <- ""
+
+batsdf$cave_group <- ifelse(grepl("_C", batsdf$tag_local_identifier, ignore.case = T), "haremC1_lagruta", 
+         ifelse(grepl("_D", batsdf$tag_local_identifier, ignore.case = T), "haremD_lagruta", 
+                ifelse(grepl("_G", batsdf$tag_local_identifier, ignore.case = T), "haremG_lagruta",
+                       ifelse(grepl("_056", batsdf$tag_local_identifier, ignore.case = T), "blue_muddycave",
+                              ifelse(grepl("_096", batsdf$tag_local_identifier, ignore.case = T), "haremB_lagruta",
+                                     ifelse(grepl("_052", batsdf$tag_local_identifier, ignore.case = T), "yellow_muddycave", "other"  ))))))
+unique(batsdf$cave_group)
+
+# harem C2 from colony 1 = la gruta
+haremC2c1 <- dfreference[which(dfreference$animal_comments=="haremC1C2-lagruta"),]
+unique(haremC2c1$tag_id)#PH_TS_117 PH_TS_039
+
+haremC2<- dfreference[which(dfreference$animal_comments=="haremC2-lagruta"),]
+unique(haremC2$tag_id)#"PH_TS_018" "PH_TS_046" "PH_TS_030"
+
+batsdf$cave_group[which(batsdf$tag_local_identifier=="PH_TS_117" | batsdf$tag_local_identifier=="PH_TS_039"| batsdf$tag_local_identifier=="PH_TS_018"| batsdf$tag_local_identifier=="PH_TS_046"| batsdf$tag_local_identifier=="PH_TS_030")] <- "haremC2_lagruta"
+
+# hole 1 from colony 2= aj cave
+hole1 <- dfreference[which(dfreference$animal_comments=="hole1-ajcave"),]
+unique(hole1$tag_id)#"PH_TS_014" "PH_TS_074" "PH_TS_079" "PH_TS_098" "PH_TS_100" "PH_TS_004" "PH_TS_016" "PH_TS_121" "PH_TS_114"
+
+batsdf$cave_group[which(batsdf$tag_local_identifier=="PH_TS_014" | batsdf$tag_local_identifier=="PH_TS_074"| batsdf$tag_local_identifier=="PH_TS_079"| batsdf$tag_local_identifier=="PH_TS_098"| batsdf$tag_local_identifier=="PH_TS_100"| batsdf$tag_local_identifier=="PH_TS_004" | batsdf$tag_local_identifier=="PH_TS_016" | batsdf$tag_local_identifier=="PH_TS_121" | batsdf$tag_local_identifier=="PH_TS_114")] <- "hole1_ajcave"
+
+# pink group from colony 3 = muddy cave
+pink <- dfreference[which(dfreference$animal_comments=="pink-muddycave"),]
+unique(pink$tag_id)#"PH_TS_062" "PH_TS_072" "PH_TS_029" "PH_TS_049"
+
+batsdf$cave_group[which(batsdf$tag_local_identifier=="PH_TS_062" | batsdf$tag_local_identifier=="PH_TS_072"| batsdf$tag_local_identifier=="PH_TS_029"| batsdf$tag_local_identifier=="PH_TS_049")] <- "pink_muddycave"
+
+# hole 2 from colony 2= aj cave
+hole2 <- dfreference[which(dfreference$animal_comments=="hole2-ajcave"),]
+unique(hole2$tag_id)#"PH_TS_081" "PH_TS_103"
+
+batsdf$cave_group[which(batsdf$tag_local_identifier=="PH_TS_081" | batsdf$tag_local_identifier=="PH_TS_103")] <- "hole2_ajcave"
+
+# hole 2 from colony 2= aj cave
+hole3 <- dfreference[which(dfreference$animal_comments=="hole3-ajcave"),]
+unique(hole3$tag_id) #"PH_TS_011" "PH_TS_024" "PH_TS_080" "PH_TS_112" "PH_TS_113""PH_TS_120" "PH_TS_083" "PH_TS_085"
+
+batsdf$cave_group[which(batsdf$cave_group=="other")] <-  "hole3_ajcave"
+batsdf$cave <- str_split_i(batsdf$cave_group, "_",2)
+
+# save
+write.csv(batsdf, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/Phyllostomus2021-2022_group.csv")
+
+save(batsdf, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/Phyllostomus2021-2022_group.RData")
+
+# use this to open the move object
+# load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/Phyllostomus2021-2022_group.RData")
+```
+
+## Remove outliers
+
+```{r remove outliers, include=TRUE}
+# changing the column name of timestamp and setting a posixct class
+batsdf$timestamp <- as.POSIXct(batsdf$timestamp, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
+
+# removing outliers
+batsdf_new <- batsdf[batsdf$location_long > -85,] 
+batsdf_new<- batsdf_new[!batsdf_new$location_lat == "9.47281",]
+
+# plot without outliers
+plot(batsdf_new$location_long, batsdf_new$location_lat)
+```
+
+## Removing some individuals with no good data
+
+```{r}
+# splitting data frame to a list
+bocas.split <- split(batsdf_new, batsdf_new$tag_local_identifier)
+
+# plot to see individuals
+plot(bocas.split[["0C506E35_C"]]$location_long,bocas.split[["0C506E35_C"]]$location_lat)
+plot(bocas.split[["5C500E4E_C"]]$location_long,bocas.split[["5C500E4E_C"]]$location_lat)
+plot(bocas.split[["31507235_C"]]$location_long,bocas.split[["31507235_C"]]$location_lat)
+plot(bocas.split[["53507135_C"]]$location_long,bocas.split[["53507135_C"]]$location_lat)
+plot(bocas.split[["38506D37_C"]]$location_long,bocas.split[["38506D37_C"]]$location_lat)
+plot(bocas.split[["38500337_C"]]$location_long,bocas.split[["38500337_C"]]$location_lat)
+plot(bocas.split[["PH_TS_030"]]$location_long,bocas.split[["PH_TS_030"]]$location_lat)
+
+# remove individuals where data is very incomplete 
+bocas.splitnew <- bocas.split[names(bocas.split) %in% c("5C500E4E_C","PH_TS_030", "31507235_C", "53507135_C", "32501535_C")== FALSE] 
+
+# create data frame
+batsbocas.clean <- do.call(rbind, bocas.splitnew)
+
+# split data frame
+batsbocas.clean$ID <- paste0(batsbocas.clean$tag_local_identifier, ".", date(batsbocas.clean$timestamp))
+allbats.batday <- split(batsbocas.clean, batsbocas.clean$ID)
+
+# remove more individual days from march where data was not good 
+batsclean <- allbats.batday[names(allbats.batday) %in%  c("0C506E35_C.2021-12-10", "0C506E35_C.2021-12-11", "22507B4E_D.2022-02-01", "2C500235_D.2022-02-13", "38506D37_D.2022-02-03", "0D501435_C.2021−12−09", "2D507235_G.2022-01-31", "37507537_D.2022-02-01",  "38506D37_C.2021-12-09",  "38506737_G.2022-01-30",   "39500E37_D.2022-02-01", "39500E37_D.2022-02-02", "PH_TS_016.2022-03-13", "PH_TS_016.2022-03-15", "PH_TS_018.2022-03-17", "PH_TS_018.2022-03-18", "PH_TS_018.2022-03-19", "PH_TS_024.2022-03-08", "PH_TS_024.2022-03-11","PH_TS_024.2022-03-12", "PH_TS_024.2022-03-13", "PH_TS_024.2022-03-14", "PH_TS_024.2022-03-15", "PH_TS_039.2022-03-15", "PH_TS_049.2022-03-11", "PH_TS_049.2022-03-12", "PH_TS_049.2022-03-13", "PH_TS_052.2022-03-13", "PH_TS_052.2022-03-14", "PH_TS_056.2022-03-10", "PH_TS_056.2022-03-12", "PH_TS_056.2022-03-15", "PH_TS_056.2022-03-16", "PH_TS_056.2022-03-17", "PH_TS_062.2022-03-15", "PH_TS_062.2022-03-16", "PH_TS_062.2022-03-17", "PH_TS_072.2022-03-14", "PH_TS_072.2022-03-15", "PH_TS_072.2022-03-17","PH_TS_072.2022-03-18", "PH_TS_074.2022-03-13", "PH_TS_074.2022-03-14", "PH_TS_081.2022-03-14", "PH_TS_081.2022-03-15", "PH_TS_081.2022-03-17", "PH_TS_083.2022-03-12", "PH_TS_083.2022-03-14", "PH_TS_083.2022-03-15", "PH_TS_085.2022-03-09", "PH_TS_085.2022-03-10", "PH_TS_085.2022-03-13", "PH_TS_085.2022-03-15", "PH_TS_085.2022-03-16", "PH_TS_096.2022-03-13", "PH_TS_096.2022-03-14", "PH_TS_096.2022-03-15", "PH_TS_098.2022-03-10", "PH_TS_098.2022-03-11", "PH_TS_100.2022-03-12", "PH_TS_100.2022-03-13", "PH_TS_100.2022-03-14", "PH_TS_100.2022-03-15", "PH_TS_103.2022-03-16", "PH_TS_113.2022-03-11", "PH_TS_113.2022-03-13", "PH_TS_113.2022-03-14", "PH_TS_113.2022-03-15", "PH_TS_114.2022-03-08", "PH_TS_114.2022-03-10", "PH_TS_121.2022-03-12","PH_TS_121.2022-03-13", "PH_TS_121.2022-03-15")== FALSE]
+
+batsclean.df <- do.call(rbind, batsclean)
+```
+
+## Downsampling data from 2021 from the wet season
+
+Now I am downsampling GPS data from December 2021 that was collected every 30 seconds. I will down sample to every 2 minutes to match the sampling rate from the data from February
+
+```{r resampling data from december, results=hide}
+# order by ID and timestamp
+batsclean.df <- batsclean.df[order(batsclean.df$tag_local_identifier, batsclean.df$timestamp),]
+
+# take data only from December
+bats_wet <- batsclean.df %>%
+  filter(date(timestamp)>"2021-12-01" & date(timestamp)<"2021-12-31")
+
+# split by ID
+bats_wet_lst<- split(bats_wet, bats_wet$ID)
+
+library(amt)
+
+# Convert data frame to track object
+resample <-  lapply(bats_wet_lst, function(x){
+  mk_track(tbl=x, all_cols=T,
+           .x=location_long, .y=location_lat, crs = 32617,
+           .t=timestamp, order_by_ts = T, check_duplicates = T)
+})
+
+# resample every two minutes
+resample_2 <- lapply(resample, function(x){
+  track_resample(x, rate = minutes(2), tolerance = seconds(1), start = 1)
+})
+
+# check if resampling went well
+lapply(resample_2, function(x){
+  ggplot(aes(x=x_, y=y_), data=x) + geom_point() + ggtitle(x$ID)
+})
+
+# convert to dataframe again
+batsdfwet <- do.call(rbind.data.frame,resample_2)
+batsdfwet <- as.data.frame(batsdfwet)
+names(batsdfwet)[1] <- "location_long"
+names(batsdfwet)[2] <- "location_lat"
+names(batsdfwet)[3] <- "timestamp"
+
+# remove burst columns
+batsdfwet <- batsdfwet[,-79]
+
+# data frame without wet season
+batsclean_nowet <- batsclean.df %>%
+  filter(date(timestamp)>"2021-12-31")
+
+# join to large data set of all bacas
+bats_clean <- rbind(batsclean_nowet,batsdfwet)
+
+# order data frame by id and timestamp
+bats_clean[order(bats_clean$tag_local_identifier, bats_clean$timestamp),]
+
+# it runs if the data is downloaded from movebank
+movebats <- move(x=bats_clean$location_long, y=bats_clean$location_lat, 
+	     time=as.POSIXct(bats_clean$timestamp, format="%Y-%m-%d %H:%M:%S", tz="UTC"), 
+	     data=bats_clean, proj=CRS("+proj=longlat +ellps=WGS84"), 
+	     animal=bats_clean$tag_local_identifier, sensor="GPS")
+
+#"proj=utm +zone=17 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+n.indiv(movebats)
+
+move::plot(movebats)
+
+# initial movement parameters pre-cleaning.
+moveList <- lapply(split(movebats), function(myInd){
+  datechange <- c(0, abs(diff(as.numeric(as.factor(date(myInd@timestamps-(12*60*60)))))))
+  myInd$BatDay <- cumsum(datechange)+1
+  myInd$tlag <- c(NA,timeLag(myInd, units="secs"))
+  myInd$step <- c(NA, move::distance(myInd))
+  myInd$tag_ground_speed <- myInd$ground_speed
+  myInd$ground_speed <- c(NA, move::speed(myInd))
+  myInd$angle <- c(NA, angle(myInd))
+  return(myInd)
+})
+
+movebats <- moveStack(moveList, forceTz="UTC")
+movebats<- spTransform(movebats, CRS("+proj=utm +zone=17 +datum=WGS84"))
+crds <- as.data.frame(movebats@coords)
+movebats$x <- crds$coords.x1 
+movebats$y <- crds$coords.x2 
+# movebats <- spTransform(movebats, CRS("+proj=longlat +datum=WGS84"))
+batsdf_new<- as.data.frame(movebats)
+
+# create a column with id and batday
+batsdf_new$ID_batday <- paste(batsdf_new$tag_local_identifier, batsdf_new$BatDay, sep="_")
+
+#saving data
+save(batsdf_new, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/BatsBocas_nooutliers.RData")
+
+```

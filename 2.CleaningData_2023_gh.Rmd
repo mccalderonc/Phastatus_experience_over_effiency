@@ -1,0 +1,169 @@
+---
+title: "Cleaning 2023 data"
+author: "Camila Calderon"
+date: "2024-02-16"
+output: html_document
+---
+
+## Load libraries 
+
+```{r, warning=FALSE, message = FALSE}
+library(move)
+library(ggmap)
+library(ctmm)
+library(data.table)
+library(janitor)
+library(lubridate)
+library(amt)
+```
+
+## Download data from movebank for Bocas 2023
+
+```{r}
+me <- movebankLogin(username="", password="!")
+studyId <- getMovebankID("Greater spear-nosed bat (Phyllostomus hastatus) Bocas 2023",me)
+batsBocas<- getMovebankData(study=studyId, login=me)
+n.indiv(batsBocas)
+
+# plot tracks
+move::plot(batsBocas)
+```
+
+## Removing data which is incomplete or not good
+
+```{r pressure, results=FALSE}
+# convert move object to data frame for cleaning
+batsBocas_df <- as.data.frame(batsBocas)
+
+# add id_day column
+batsBocas_df$ID <- paste(batsBocas_df$tag_local_identifier, date(batsBocas_df$timestamp), sep="_")
+
+# plotting individuals to see which ones have good data by ID
+lapply(split(batsBocas_df, batsBocas_df$ID), function(x){
+  ggplot(x, aes(x=timestamp, y=location_long))+geom_point()+ggtitle(x$ID)
+})
+
+# plot by day
+lapply(split(batsBocas_df, date(batsBocas_df$timestamp)), function(x){
+    ggplot(aes(x=location_long, y=location_lat, color=tag_local_identifier), data=x)+
+    geom_point()+
+    ggtitle(date(x$timestamp))
+})
+```
+
+## Remove days with bad data
+
+```{r}
+# split data frame by id
+batsBocas_ls <- split(batsBocas_df, batsBocas_df$ID)
+
+batsBocas_clean_ls <- batsBocas_ls[names(batsBocas_ls) %in% c("PHYL4_2023-08-12","PHYL4_2023-08-17", "PHYL40_2023-08-12", "PHYL40_2023-08-16","PHYL40_2023-08-17", "PHYL7_2023-08-14", "PHYL38_2023-08-16", "PHYL36_2023-08-12", "PHYL36_2023-08-12", "PHYL36_2023-08-13", "PHYL36_2023-08-15", "PHYL36_2023-08-16", "PHYL36_2023-08-17", "PHYL34_2023-08-12", "PHYL34_2023-08-15", "PHYL34_2023-08-16","PHYL33_2023-08-12","PHYL33_2023-08-14", "PHYL33_2023-08-16", "PHYL32_2023-08-12", "PHYL32_2023-08-14", "PHYL31_2023-08-16","PHYL30_2023-08-17","PHYL3_2023-08-15","PHYL29_2023-08-13", "PHYL24_2023-08-18", "PHYL22_2023-08-16", "PHYL22_2023-08-17", "PHYL21_2023-08-15") == FALSE] #37 is not great but I still will leave it 
+# bats 22, 24, 32, 35, 39, 30 forage in the island at least one of the days.
+# bat 22 forage on the island on August 14 and 15
+#bat 24 forage on the island on August 14-18
+
+# plot data of the individuals to be used
+lapply(batsBocas_clean_ls, function(x){
+    ggplot(aes(x=location_long, y=location_lat), data=x)+
+    geom_point()+
+    ggtitle(unique(x$ID))
+})
+```
+## Renaming group and sex information to the data
+
+```{r, results=FALSE}
+# covert list of ids to data frame again
+batsBocas_cleandf <- do.call(rbind, batsBocas_clean_ls)
+
+# order by ID and timestamp
+batsBocas_cleandf <- batsBocas_cleandf[order(batsBocas_cleandf$tag_local_identifier, batsBocas_cleandf$timestamp),]
+
+# add cave group
+batsBocas_cleandf$cave_group <-batsBocas_cleandf$group_id
+
+# add cave only 
+batsBocas_cleandf$cave <- sapply(batsBocas_cleandf$cave_group, function(x) {strsplit(x, "-")[[1]][1]})
+
+# add sex
+batsBocas_cleandf$animal_sex <- batsBocas_cleandf$sex
+
+# remove speed higher than 15 m/s that look like outliers
+batsBocas_cleandf <- batsBocas_cleandf[batsBocas_cleandf$ground_speed<=15,]
+
+# rename dataframe
+Bocas2023_clean <- batsBocas_cleandf[-1,]
+```
+
+## Down sample data to every 2 minutes
+```{r, results=FALSE}
+# split by ID
+bats_2023_split <- split(Bocas2023_clean, Bocas2023_clean$ID)
+
+# convert to track object before down sampling
+resample <-  lapply(bats_2023_split, function(x){
+  mk_track(tbl=x, all_cols=T,
+           .x=location_long, .y=location_lat, crs = 32617,
+           .t=timestamp, order_by_ts = T, check_duplicates = T)
+})
+
+# resample every two minutes
+resample_2 <- lapply(resample, function(x){
+  track_resample(x, rate = minutes(2), tolerance = seconds(1), start = 1)
+})
+
+# check if resampling went well
+lapply(resample_2, function(x){
+  ggplot(aes(x=x_, y=y_), data=x) + geom_point()
+})
+
+# convert to data frame
+batsdf2023 <- do.call(rbind.data.frame,resample_2)
+
+# I have to do this again, otherwise is a tibble
+batsdf2023 <- as.data.frame(batsdf2023)
+names(batsdf2023)[1] <- "location_long"
+names(batsdf2023)[2] <- "location_lat"
+names(batsdf2023)[3] <- "timestamp"
+
+# remove burst columns
+batsdf2023 <- batsdf2023[,-55]
+
+batsdf2023[order(batsdf2023$tag_local_identifier, batsdf2023$timestamps),]
+
+# convert to move object
+batsmove <- move(x=batsdf2023$location_long, y=batsdf2023$location_lat, 
+                 time=as.POSIXct(batsdf2023$timestamps, format="%Y-%m-%d %H:%M:%S", tz="UTC"), 
+                 data=batsdf2023, proj=CRS("+proj=longlat +ellps=WGS84"), 
+                 animal=batsdf2023$tag_local_identifier, sensor="GPS")
+
+# calculate initial movement parameters pre-cleaning
+moveList <- lapply(split(batsmove), function(myInd){
+  datechange <- c(0, abs(diff(as.numeric(as.factor(date(myInd@timestamps-(12*60*60)))))))
+  myInd$BatDay <- cumsum(datechange)+1
+  myInd$tlag <- c(NA,timeLag(myInd, units="secs"))
+  myInd$step <- c(NA, move::distance(myInd))
+  myInd$tag_ground_speed <- myInd$ground_speed
+  myInd$ground_speed <- c(NA, move::speed(myInd))
+  myInd$angle <- c(NA, angle(myInd))
+  return(myInd)
+})
+n.indiv(batsmove)
+
+movebats2023<- moveStack(moveList, forceTz="UTC")
+movebats2023<- spTransform(movebats2023, CRS("+proj=utm +zone=17 +datum=WGS84"))
+crds <- as.data.frame(movebats2023@coords)
+movebats2023$x <- crds$coords.x1 
+movebats2023$y <- crds$coords.x2 
+
+# convert to data frame
+batsdf2023_clean <- as.data.frame(movebats2023)
+
+# add id_batday column 
+batsdf2023_clean$ID_batday <- paste(batsdf2023_clean$tag_local_identifier, batsdf2023_clean$BatDay, sep="_")
+unique(batsdf2023_clean$ID_batday)
+
+# save data frame cleaned
+save(batsdf2023_clean,file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/PhasBocas_2023_clean.RData")
+```
+
+

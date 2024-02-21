@@ -1,0 +1,384 @@
+---
+title: "Phyllostomus hastatus, Bocas del Toro: Simulation of commuting tracks using ctmm"
+author: "Mariëlle"
+format: 
+  html:
+    embed-resources: true
+editor: source
+---
+
+## Session set-up
+
+```{r}
+
+library(ctmm)
+library(ggplot2)
+library(sf)
+library(suntools)
+library(plyr)
+library(ggspatial)
+library(geosphere)
+library(lubridate)
+library(momentuHMM)
+
+proj.ll <- '+proj=longlat +datum=WGS84'
+
+adm <- rbind(st_read('data/environmental/gadm41_PAN_shp/gadm41_PAN_0.shp', quiet=T),
+             st_read('data/environmental/gadm41_CRI_shp/gadm41_CRI_0.shp', quiet=T))
+
+coastline <- st_union(adm)
+
+```
+
+### Cave locations
+
+```{r}
+
+cave.loc <- data.frame(
+  cave=c('lagruta', 'ajcave', 'muddycave'),
+  long=c(-82.271541, -82.274955, -82.264753),
+  lat=c(9.396448, 9.440312, 9.387233)
+)
+
+```
+
+## Data preparation
+
+Importing the data with annotated behavior, and I somehow kept a couple of unnecessary steps that Camila had already done in her own way:
+
+```{r}
+
+(load('data/tracking_data_annotated/Phyllostomus2021-2022_HMMbehaviors.RData'))
+
+# rename caves
+bats_behaviors$cave[bats_behaviors$cave=='LG'] <- 'lagruta'
+bats_behaviors$cave[bats_behaviors$cave=='MT'] <- 'ajcave'
+
+# remove columns that contain no data
+bats_behaviors <- bats_behaviors[,apply(bats_behaviors, 2, function(x){any(!is.na(x))})]
+
+# assign season (I'm currently assuming that December is rather wet than dry)
+bats_behaviors$season <- ifelse(bats_behaviors$month %in% c('Aug', 'Dec'), 'wet', 'dry')
+
+# assign "day" by calculating time of day relative to solar noon
+p <- st_as_sf(bats_behaviors, coords=c('location_long', 'location_lat'), crs=st_crs(proj.ll))
+noon <- solarnoon(p, bats_behaviors$timestamp, POSIXct.out=T)
+
+# fractional hours after noon
+bats_behaviors$tod <- as.numeric(difftime(bats_behaviors$timestamp, noon$time, units = 'h'))%%24
+
+# split individual tracks into separate days
+bats_behaviors <- ddply(bats_behaviors, 'individual_id', function(x){
+  x$day <- c(0, cumsum(diff(x$tod)<0)) + 1
+  return(x)
+})
+
+```
+
+## Identify outbound and inbound commute
+
+Camila had already applied a HMM to classify the behaviours of individuals at points using step length & turning angles. Here I took a slightly different approach that makes it easier to separate the outbound commute, away from the cave, from the commute back to the cave. I did this by replacing turning angle with angle to the colony, which takes values around $\pi$ when individuals fly away from the cave, and 0 when they fly towards it. Step length contains sufficient information to separate flight from other behaviour, so it was not necessary to do a lot of optimisation to get to a model that looks pretty good. I thought of making a couple of additions to the model, such as fixing the order of states or looking into effects of season & cave on direction of travel, but that turned out to be complicating things where not necessary.
+
+```{r}
+# fit HMM to time series of locations representing bat-days
+bats_behaviors$ID <- bats_behaviors$ID_batday
+
+# prepare cave locations for angle calculation
+caves <- as.matrix(cave.loc[,2:3])
+dimnames(caves)[[1]] <- cave.loc$cave
+
+# convert data to momentuHMM format
+bats <- prepData(bats_behaviors[,!names(bats_behaviors) %in% c('x', 'y', 'step', 'angle')], 
+                 coordNames = c('location_long', 'location_lat'), 
+                 covNames=c('cave'), type = 'LL', 
+                 centers = caves)
+
+# make new angle covariate choosing the angle to the respective cave for each individual
+bats$cave.angle <- unlist(lapply(1:nrow(bats), function(j){
+  keep <- ifelse(bats$cave[j]=='lagruta', bats$lagruta.angle[j], 
+                 ifelse(bats$cave[j]=='ajcave', bats$ajcave.angle[j], bats$muddycave.angle[j]))
+}))
+
+# starting parameters
+par <- getParDM(data=bats, 
+                nbStates=3,
+                dist=list(step='gamma', cave.angle='wrpcauchy'), 
+                estAngleMean = list(cave.angle=T),
+                Par=list(step=c(0.1,1.25,1.25,0.5,2,2,0.5,0.01,0.01),
+                         cave.angle=c(pi-0.01, 0, pi-0.01, 0.3,0.7,0.7)),
+                userBounds = list(cave.angle=matrix(c(rep(c(-pi,pi), 3), rep(c(0,1), 3)), ncol=2, byrow=T))) # DM=DM, 
+
+# fit HMM
+hmm2 <- fitHMM(data=bats,
+              nbStates=3,
+              dist=list(step='gamma', cave.angle='wrpcauchy'), 
+              estAngleMean = list(cave.angle=T),
+              Par0=par,
+              stateNames=c('other', 'inbound commute', 'outbound commute'))
+
+hmm2
+
+# does the model look any good?
+plot(hmm2, plotTracks=T, animals=sample(length(unique(bats$ID)), 12), ask=F)
+
+```
+
+It turns out bats are quite similar to (most) birds when it comes to a straightforward HMM into flight/non-flight behaviour, and I'm quite happy with how the inbound and outbound commute separate as well. In the next step, I will retain for each bat-day the data from the first to the last location considered "outbound commute"; i.e. this will contain some foraging locations as well. 
+
+```{r}
+
+bats$state <- viterbi(hmm2)
+
+# which state is outbound commute?
+ca <- hmm2$mle$cave.angle
+(keep <- which(ca[2,]>0.7 & abs(round(ca[1,]))==3))
+
+commute.outward <- ddply(bats, 'ID', function(x){
+  if(any(x$state==3)){
+    keep <- which(x$state==3)
+    return(x[min(keep):max(keep),])
+  }else{return(NULL)}
+})
+
+```
+
+What remains?
+
+```{r}
+#| echo: false
+#| waning: false
+
+ggplot() +
+  geom_sf(data=adm, fill='antiquewhite', colour='antiquewhite4', linewidth=0.2) +  xlim(range(commute.outward$x)) +
+  ylim(range(commute.outward$y)) +
+  theme_light() +
+  theme(axis.title=element_blank(), 
+        panel.grid=element_blank(),
+        plot.background = element_rect(fill = "white", color = NA), 
+        panel.background = element_rect(fill = '#dcebf0', color = NA), 
+        legend.background = element_rect(fill = "white", color = NA), ##f5f5f2
+        panel.border = element_blank()) +
+  annotation_scale(location = "tr", line_width = 1) +
+  labs(x='Longitude', y='Latitude') +
+  geom_path(data=commute.outward, aes(x=x, y=y, group=ID, colour=cave)) +
+  scale_colour_viridis_d(end=0.8, option='C', name='', direction=-1) +
+  guides(colour=guide_legend(override.aes = list(linewidth=2)))
+
+```
+
+Now that we have pulled out the outbound commute, I can fit the IOU-ctmms to the data for the simulations. First, I will remove any outbound commute that starts on the mainland, just to make sure we don't have any stray return movements remaining in the data. 
+
+```{r}
+#| eval: false
+
+# re-arrange data for use with ctmm
+commute.outward$individual.local.identifier <- commute.outward$ID
+commute.outward$location.long <- commute.outward$x
+commute.outward$location.lat <- commute.outward$y
+
+# check starting point
+panama <- st_cast(adm[adm$COUNTRY=='Panama',], 'POLYGON')
+panama$area <- st_area(panama)
+mainland <- panama[which.max(panama$area),]
+p <- st_as_sf(commute.outward, coords=c('location.long', 'location.lat'), crs=st_crs(mainland))
+commute.outward$mainland <- st_within(p, mainland, sparse=F)[,1]
+
+# remove bat-days that have outbound commute starting on the mainland
+commute.outward <- ddply(commute.outward, 'ID', function(x){
+  if(x$mainland[1]){return(NULL)}
+  # if(nrow(x)<5){return(NULL)}
+  return(x)
+})
+
+# convert to telemetry-object
+tel.all <- as.telemetry(commute.outward)
+tel.all <- tel.all[!is.na(summary(tel.all)[,1])]
+
+# we need a couple of data points to fit a model, and we want to make sure that we base it on a bit of actual commute rather than foraging
+# retain bat-days with at least 5 commuting locations
+commute.prop <- ddply(commute.outward, 'ID', function(x){data.frame(n=sum(x$state==keep), nrow=nrow(x))})
+tel.all <- tel.all[names(tel.all) %in% commute.prop$ID[commute.prop$n>5]]
+
+# remove tracks with less than 10 data points
+tel.all <- tel.all[sapply(tel.all, nrow)>10]
+
+# this leaves 218 tracks to fit our model to!
+
+ctmm.gps <- lapply(names(tel.all), function(id){
+  # print(id)
+  tel <- tel.all[[id]]
+  var <- variogram(tel, dt=c(2%#%'minutes'))
+  PROTO <- ctmm(range=FALSE)
+  GUESS <- ctmm.guess(tel, var=var, interactive=FALSE, CTMM=PROTO)
+  m <- try(ctmm.select(tel, CTMM=GUESS, cores=2, verbose=F))
+  return(m)
+}); names(ctmm.gps) <- sapply(ctmm.gps, function(x){x@info$identity})
+
+# save models
+save(tel.all, ctmm.gps, file='iou_models_outbound_commute.RData')
+
+```
+
+Some means from the models:
+
+```{r}
+#| echo: false
+
+# replaced ballistic with iou just in the filename above
+load('ballistic_models_outbound_commute.RData')
+
+```
+```{r}
+#| fig-height: 8
+
+meta(ctmm.gps, variable='speed')
+meta(ctmm.gps, variable='diffusion')
+
+```
+
+## Simulations
+
+Now everything should be ready for the simulations of alternative outbound commuting tracks, apart from one thing: we need to determine for how many steps we want to simulate from the model. One issue with the outbound commute is that it was not always fully captured if the GPS started up late. To avoid assuming to small a number of steps, use both the mean of the time spent on inbound and outbound commute to determine a empirical distribution of steps that we can sample from.
+
+```{r}
+# time in return commute (gets us the entire distance rather than just part of the outbound commute)
+
+# which states are commuting states?
+(commute.state <- which(ca[2,]>0.7))
+
+commute.time <- timeInStates(hmm2, by='ID')
+commute.time$track.dur <- unlist(lapply(commute.time$ID, function(id){
+  diff(range(as.numeric(bats$timestamp[bats$ID==id])))
+}))
+commute.time <- (apply(commute.time[,commute.state+1], 1, sum)*commute.time$track.dur) / 2
+commute.time <- round(commute.time[commute.time>0]/120)
+
+```
+
+
+```{r}
+#| echo: false
+#| warning: false
+
+ggplot(data.frame(steps=commute.time), aes(x=steps)) + 
+  geom_histogram(breaks=seq(0,130,5), fill='grey90', colour='grey20') +
+  scale_x_continuous(breaks=seq(0,125,25)) +
+  theme_light() + labs(x='Number of commuting steps')
+
+ggsave(filename='empirical_step_dist.png', width=88, height=80, unit='mm')
+
+```
+```{r}
+
+cs <- expand.grid(cave=c('lagruta', 'ajcave', 'muddycave'),
+                  season=c('dry', 'wet'), KEEP.OUT.ATTRS=F)
+
+check.n <- ddply(commute.outward, 'ID', nrow)
+keep.id <- commute.outward[commute.outward$ctmm.gps %in% names(ctmm.gps),]
+
+sim <- ddply(cs, c('cave', 'season'), function(x){
+  cv <- x$cave; se <- x$season
+  print(paste(cv, se, sep=' - '))
+  ids <- unique(commute.outward$ID[commute.outward$cave==cv & commute.outward$season==se])
+  ids <- as.character(ids[ids %in% names(ctmm.gps)])
+  if(length(ids)==0){return(NULL)}
+  
+  rbind.fill(lapply(sample(ids, 5000, replace=T), function(id){
+    steps <- sample(commute.time, 1)
+    sim <- simulate(ctmm.gps[[id]], t=seq(0,steps*120,120))
+    sim <- as.data.frame(sim@.Data)
+    sim <- sim[nrow(sim),2:3]; names(sim) <- c('x', 'y')
+    sim$n <- steps
+    return(sim)
+  }))
+
+})
+
+p <- st_as_sf(sim, coords=c('x', 'y'), crs=st_crs(tel.all[[1]]@info$projection))
+p.ll <- st_transform(p, st_crs(proj.ll))
+sim$long <- st_coordinates(p.ll)[,1]
+sim$lat <- st_coordinates(p.ll)[,2]
+sim$land <- st_within(p.ll, adm, sparse=F)[,1]
+
+sim$cave.label <- factor(sim$cave, labels=c('La Gruta', 'Aj Cave', 'Muddy Cave'))
+
+# end-of-commuting locations
+# foraging <- bats_behaviors[bats_behaviors$behav2=='foraging',]
+foraging <- ddply(bats[!is.na(bats$cave),], 'ID', function(x){
+  if(any(x$state==3)){
+    keep <- which(x$state==3)
+    return(x[max(keep)+1,])
+  }else{return(NULL)}
+})
+foraging <- foraging[complete.cases(foraging$ID),]
+
+foraging$cave2 <- ifelse(foraging$cave=='lagruta', 'Colony 1', 
+                         ifelse(foraging$cave=='ajcave', 'Colony 2', 'Colony 3'))
+foraging$season <- ifelse(foraging$season=='dry', 'dry season', 'wet season')
+foraging$group <- paste(foraging$cave2, foraging$season, sep='-')
+
+p1 <- ggplot() +
+  geom_sf(data=adm, fill='white', colour='black', linewidth=0.2) +
+  theme_light() +
+  theme(axis.title=element_blank(), 
+        panel.grid=element_blank(),
+        plot.background = element_rect(fill = "white", color = NA), 
+        panel.background = element_rect(fill = 'grey90', color = NA), 
+        legend.background = element_rect(fill = "white", color = NA), ##f5f5f2
+        panel.border = element_blank()) +
+  labs(x='Longitude', y='Latitude') +
+  # geom_point(data=sim[sim$land,], aes(x=long, y=lat), colour='grey20', size=0.5) +
+  geom_point(data=sim[sim$land,], aes(x=long, y=lat), size=0.05, alpha=1, show.legend=T) + 
+  geom_density_2d(data=sim[sim$land,], aes(x=long, y=lat), show.legend=F, colour=viridisLite::inferno(9)[6], linewidth=0.2) +
+  # scale_colour_manual(values=c(NA, viridisLite::viridis(7))) +
+  geom_point(data=foraging, aes(x=x, y=y, colour=group), size=1, alpha=0.7) +
+  guides(colour=guide_legend(override.aes = list(alpha=1, size=2, shape=16))) + 
+  scale_colour_manual(name='', values=viridisLite::viridis(12)[c(2,4,7,9,12)]) +
+  scale_x_continuous(expand=c(0,0), limits=c(min(sim$long[sim$land]), -82)) + 
+  scale_y_continuous(expand=c(0,0), limits=c(9, max(sim$lat[sim$land]))) +
+  annotation_scale(location = "tr", line_width = 1) #+
+  # facet_grid(factor(season, labels=c('dry season', 'wet season'))~cave.label)
+
+ggsave(plot=p1, filename='simulated_vs_real_foraging_locations.pdf', width=174, height=100, unit='mm', dpi=600)
+
+foraging$angle <- unlist(lapply(1:nrow(foraging), function(j){
+  bearing(cave.loc[cave.loc$cave==foraging$cave[j],2:3], foraging[j,c('x', 'y')])
+}))
+
+sim <- ddply(sim, 'cave', function(x){
+  cave <- unique(x$cave)
+  p <- st_as_sf(x, coords=c('long', 'lat'), crs=st_crs(proj.ll))
+  x$angle <- bearing(cave.loc[cave.loc$cave==cave,2:3], st_coordinates(p))
+  return(x)
+})
+
+sim$cave2 <- ifelse(sim$cave=='lagruta', 'Colony 1', 
+                          ifelse(sim$cave=='ajcave', 'Colony 2', 'Colony 3'))
+sim$season <- ifelse(sim$season=='dry', 'dry season', 'wet season')
+
+library(viridisLite)
+
+p2 <- ggplot(sim) +
+  geom_histogram(aes(x=(angle+360)%%360), fill='grey90', colour='grey20', breaks=seq(0,360,10)) +
+  facet_grid(season~cave2) +
+  theme_light() +
+  geom_vline(data=foraging, aes(xintercept=(angle+360)%%360, colour=season), linewidth=0.2, alpha=0.5) +
+  scale_colour_manual(name='', values=c('dry season'=inferno(9)[7], 'wet season'=mako(9)[3])) +
+  guides(colour=guide_legend(override.aes = list(linewidth=2, alpha=1))) +
+  labs(x='Angle from cave (degrees)') +
+  scale_y_continuous(expand=c(0.001,5)) +
+  scale_x_continuous(breaks=seq(0,360,90)) +
+  theme(legend.position='none', strip.background = element_rect(fill=NA),
+        strip.text=element_text(colour='black'))
+
+ggsave(plot=p2, filename='angles.pdf', width=174, height=80, unit='mm', dpi=600)
+
+library(patchwork)
+
+p1 + p2 + plot_layout(ncol=1) + plot_annotation(tag_levels='A')
+
+ggsave(filename='simulation_plots.pdf', width=174, height=140, unit='mm')
+
+
+```
+

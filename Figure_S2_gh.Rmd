@@ -1,0 +1,109 @@
+---
+title: "Switching behavior dry and wet season"
+author: "Camila Calderon"
+date: "2024-02-20"
+output: html_document
+---
+## Load libraries
+
+```{r setup, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(patchwork)
+library(ggmap)
+library(tidyverse)
+library(ggnewscale)
+library(ggsn)
+```
+
+## Load data
+
+```{r}
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus_HMMbehaviors.RData")
+```
+
+## Select bats with switching behavior in colony 1 during the dry early season 2022 and colony 2 during the wet season 2023
+
+```{r, results=FALSE}
+# select bats in Bocas march 2022 with area switching
+bats <- bats_behaviors %>%
+  filter(tag_local_identifier=="PH_TS_046"| tag_local_identifier=="PH_TS_039")%>%
+  filter(ID!="PH_TS_039_2022-03-16")
+
+bats_aj_2023 <- bats_behaviors %>%
+  filter(tag_local_identifier=="PHYL9" |tag_local_identifier=="PHYL27"|tag_local_identifier=="PHYL28")
+
+# make a data frame with the locations of the colonies
+colonies <- data.frame(colonies=c("lagruta", "ajcave"), location_lat=c( 9.396448,9.440312), location_long=c(-82.271541, -82.274955))
+
+```
+
+## Plot switching in map
+
+```{r}
+# plot using stamen map from Bocas
+register_stadiamaps("personal-token") 
+
+#create a bounding box
+e <- make_bbox(location_long, location_lat, data = bats_behaviors)
+
+# plot colony 1 switching
+gruta_switching  <- get_stadiamap(e, zoom = 13, maptype = "stamen_toner_lite") %>% ggmap()+
+  geom_path(aes(x=location_long, y=location_lat, color=as.factor(date)),data=bats)+
+  labs(color="date")+
+  new_scale_color()+
+  new_scale_fill()+
+  geom_point(data=colonies[colonies$colonies=="lagruta",], aes(x=location_long, y=location_lat, shape=colonies, size=5, fill=colonies, color=colonies))+
+  scale_shape_manual(values = c(21), guide="none")+
+  scale_color_manual(values = "black", guide="none")+
+  scale_fill_manual(values = alpha("black", 0.6), guide="none")+
+  theme_bw()+
+  #coord_sf(crs = st_crs(4326))+
+  scalebar(location = "bottomleft",  x.min =-82.4, x.max = -82.54,
+           y.min = 9.23, y.max = 9.26, dist = 10, height = 0.05, transform = TRUE, model = "WGS84", dist_unit = "km", nudge_y= -0.01)+guides(color = "none", size="none")+
+  guides(color = "none", size="none", alpha="none", fill="none")+
+  facet_wrap(.~tag_local_identifier, nrow=2)+
+  theme(legend.position="bottom")+
+  theme_linedraw()+ 
+  theme(legend.position="none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 24),
+        axis.title.y = element_text(size = 24),
+        strip.text = element_blank())
+
+gruta_switching
+
+# plot colony 2 switching
+ajcave_switching <- get_stadiamap(e, zoom = 13, maptype = "stamen_toner_lite") %>% ggmap()+
+  geom_path(aes(x=location_long, y=location_lat, color=as.factor(date)),data=bats_aj_2023)+
+  labs(color="date")+
+  new_scale_color()+
+  new_scale_fill()+
+  geom_point(data=colonies[colonies$colonies=="ajcave",], aes(x=location_long, y=location_lat, shape=colonies, size=5, fill=colonies, color=colonies))+
+  scale_shape_manual(values = c(22), guide="none")+
+  scale_color_manual(values = "black", guide="none")+
+  scale_fill_manual(values = alpha("black", 0.6), guide="none")+
+  theme_bw()+
+  #coord_sf(crs = st_crs(4326))+
+  scalebar(location = "bottomleft",  x.min =-82.4, x.max = -82.54,
+           y.min = 9.23, y.max = 9.26, dist = 10, height = 0.05, transform = TRUE, model = "WGS84", dist_unit = "km", nudge_y= -0.01)+guides(color = "none", size="none")+
+  guides(color = "none", size="none", alpha="none", fill="none")+
+  facet_wrap(.~tag_local_identifier, nrow=3)+
+  theme_linedraw()+
+  theme(legend.position="none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 24),
+        axis.title.y = element_text(size = 24),
+        strip.text = element_blank())
+
+ajcave_switching
+
+# compile plots for figure S2
+((gruta_switching | ajcave_switching) + plot_layout(axis_titles = "collect")+ plot_annotation(tag_levels = "A") & 
+    theme(plot.tag  = element_text(face = 'bold', size=24), axis.title = element_text(face = 'bold', size=24), axis.title.x = element_text(size = 24), axis.title.y=element_text(size=24), axis.text.x=element_text(size=18, angle = 45, vjust = 0.9, hjust=1), axis.text.y=element_text(size=18)))
+
+# save figure
+ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/FigS2.tiff", width=20, height = 15, dpi=300)
+```
+

@@ -1,0 +1,81 @@
+---
+title: "Merge_data"
+author: "Camila Calderon"
+date: "2024-02-18"
+output: html_document
+---
+
+## Load libraries
+
+```{r setup}
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load data
+
+```{r cars}
+# 2016
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus2016_resample_clean.RData")
+
+# 2022
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/BatsBocas_nooutliers.RData")
+
+#2023
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/PhasBocas_2023_clean.RData")
+
+#check column names
+names(phasprocessed)
+names(batsdf_new)
+names(batsdf2023_clean)
+#add column of altitude so is equal to the other two data frames
+batsdf2023_clean$height_above_msl <- batsdf2023_clean$height_above_ellipsoid
+
+#add columns to dete and time columns to data frame in 2022 and 2023
+batsdf_new$time <- format(batsdf_new$timestamps, format = "%H:%M:%S")
+batsdf_new$date <- date(batsdf_new$timestamps)
+batsdf_new <- batsdf_new[order(batsdf_new$tag_local_identifier, batsdf_new$timestamps),]
+
+batsdf2023_clean$time <- format(batsdf2023_clean$timestamps, format = "%H:%M:%S")
+batsdf2023_clean$date <- date(batsdf2023_clean$timestamps)
+batsdf2023_clean <- batsdf2023_clean[order(batsdf2023_clean$tag_local_identifier, batsdf2023_clean$timestamps),]
+```
+
+## Make all three data frames match
+
+```{r, results=FALSE}
+# make columns to match all three data frames
+cols <- intersect(colnames(batsdf_new), colnames(phasprocessed))
+cols <- intersect(cols, colnames(batsdf2023_clean))
+
+# merge data frame by row
+allbats_Bocas <- rbind(phasprocessed[,cols], batsdf_new[,cols], batsdf2023_clean[,cols])
+names(allbats_Bocas)
+
+# add month column
+allbats_Bocas$month <- month.abb[month(allbats_Bocas$date)]
+
+# remove data with speeds larger than 15
+indx <- which(allbats_Bocas$ground_speed>16)
+allbats_Bocas <- allbats_Bocas[-indx,]
+hist(allbats_Bocas$ground_speed)
+unique(allbats_Bocas$ID_batday)
+
+# rename la gruta and ajcave from 2023 data
+allbats_Bocas$cave[which(allbats_Bocas$cave=="LG")] <- "lagruta"
+allbats_Bocas$cave[which(allbats_Bocas$cave=="MT")] <- "ajcave"
+
+# add year cave to the data frame
+allbats_Bocas$year <- lubridate::year(ymd(allbats_Bocas$date))
+allbats_Bocas$year_cave <- paste(allbats_Bocas$year, allbats_Bocas$cave, sep="_")
+allbats_Bocas$year_month<- paste(allbats_Bocas$year, allbats_Bocas$month, sep="_")
+allbats_Bocas$year_cave[which(allbats_Bocas$year_month=="2022_Feb")] <- "2022_lagruta_Feb"
+allbats_Bocas$year_cave[which(allbats_Bocas$year_month=="2022_Jan")] <- "2022_lagruta_Feb"
+allbats_Bocas$year_cave[which(allbats_Bocas$year_cave=="2022_lagruta")] <- "2022_lagruta_Mar"
+unique(allbats_Bocas$year_cave)
+
+# save
+save(allbats_Bocas, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/allPhastBocas_merged.RData")
+```
+

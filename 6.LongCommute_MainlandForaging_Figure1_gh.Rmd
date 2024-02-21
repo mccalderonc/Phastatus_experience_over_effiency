@@ -1,0 +1,252 @@
+---
+title: "Maximum distance"
+author: "Camila Calderon"
+date: "2024-02-18"
+output: html_document
+---
+
+## Load libraries
+
+```{r setup, warning=FALSE, message=FALSE}
+library(move)
+library(tidyverse)
+library(lubridate)
+library(ggmap)
+library(scales)
+library(dplyr)
+```
+
+## Load data and prepare it
+
+```{r, results=FALSE}
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus_HMMbehaviors.RData")
+
+# change name of data frame
+allbats_Bocas <- bats_behaviors
+
+#check at tracking data again!
+lapply(split(allbats_Bocas, allbats_Bocas$ID), function(x){
+  ggplot(aes(x=location_long, y=location_lat), data=x)+geom_point()+
+    ggtitle(x$ID)
+})
+```
+
+## Add cave coordinates
+
+```{r, results=FALSE}
+# add columns with the coordinate of the caves
+allbats_Bocas$location_lat_cave <- NA
+allbats_Bocas$location_long_cave <- NA
+
+allbats_Bocas$location_lat_cave[which(allbats_Bocas$cave=="lagruta")] <- 9.396448
+allbats_Bocas$location_long_cave[which(allbats_Bocas$cave=="lagruta")] <- -82.271541
+
+allbats_Bocas$location_lat_cave[which(allbats_Bocas$cave=="ajcave")] <- 9.440312
+allbats_Bocas$location_long_cave[which(allbats_Bocas$cave=="ajcave")] <- -82.274955
+
+allbats_Bocas$location_lat_cave[which(allbats_Bocas$cave=="muddycave")] <- 9.387233
+allbats_Bocas$location_long_cave[which(allbats_Bocas$cave=="muddycave")] <- -82.264753
+
+unique(allbats_Bocas$tag_local_identifier)
+```
+
+## Calculate maximum distance
+
+```{r, results=FALSE}
+# calculate point euclidean distance from the cave all the points. Gives the distance in meters
+allbats_Bocas$distanceFromCave <- pointDistance(allbats_Bocas[,c("location_long","location_lat")], allbats_Bocas[,c("location_long_cave", "location_lat_cave")], lonlat = T)
+
+# extract maximum distance
+maxdist <-aggregate(distanceFromCave~ID_batday+tag_local_identifier+year_cave+cave, allbats_Bocas, FUN=max)
+
+# convert distnace in meters to Km
+maxdist$maxkm <- maxdist$distanceFromCave/1000
+
+# need to check which ones do I leave
+maxdist[which(maxdist$maxkm<2),]
+
+# remove some distances which might not be accurate since the individuals did not travel much and there are few points
+maxdist_c <- maxdist %>%
+  filter(ID_batday!="74F9F83_3", ID_batday!="38500337_C_1",ID_batday!="0C506E35_C_1",ID_batday!="0C506E35_C_2",ID_batday!="0D501435_C_1", ID_batday!="74DA035_1", ID_batday!="74DC454_1", ID_batday!="74DDA80_2", ID_batday!="74DDFB1_1", ID_batday!="74FE24E_3", ID_batday!="PH_TS_018_7")
+
+# make a summary table per individual
+maxNSD_df_id <- maxdist_c %>%
+  group_by(tag_local_identifier, year_cave, cave) %>%
+  dplyr::summarise(mean_dist=mean(maxkm), sd=sd(maxkm))
+table(maxNSD_df_id$year_cave)
+maxNSD_df_id$sex <- allbats_Bocas$sex[match(maxNSD_df_id$tag_local_identifier, allbats_Bocas$tag_local_identifier)]
+
+#summary of number of individuals used by sex
+table(maxNSD_df_id$year_cave, maxNSD_df_id$sex)
+
+# number individuals to the summary table
+# p <- as.data.frame(table(maxNSD_df_id$year_cave,maxNSD_df_id$tag_local_identifier))
+# l <- count(p$Var1[which(p$Freq>0)])
+
+# summary table per cave
+maxddist_cave <- maxdist_c %>%
+  group_by(year_cave) %>%
+  dplyr::summarise(mean_dist=mean(maxkm), sd=sd(maxkm))
+```
+
+## Test distance with non-parametric test
+
+```{r}
+# kruskal wallis test per cave
+kruskal.test(maxNSD_df_id$mean_dist~maxNSD_df_id$year_cave)
+pairwise.wilcox.test(maxNSD_df_id$mean_dist, maxNSD_df_id$year_cave,
+                     p.adjust.method = "BH")
+
+```
+
+## On and Off island foraging
+
+Select tracks that are complete for proportion calculation of on vs. off island foraging
+
+```{r, results=FALSE}
+# split data frame by ID
+allbats_Bocas_sp <- split(allbats_Bocas, allbats_Bocas$ID)
+
+# remove some id-days
+hastMorph_com_clean <- allbats_Bocas_sp[names(allbats_Bocas_sp) %in% c("74F8E19_2016-03-07", "0D501435_C_2021-12-09","0D501435_C_2021-12-10", "0D501435_C_2021-12-11", "38506D37_C_2021-12-10", "38506D37_C_2021-12-11","38500337_C_2021-12-09", "0C506E35_C_2021-12-10" , "0C506E35_C_2021-12-11") == FALSE] 
+
+# remove some id-days
+hastMorph_com_final <- allbats_Bocas_sp[names(allbats_Bocas_sp) %in% c("2016030703_2016-03-09", "71A0D95_2016-03-08", "71A111A_2016-03-10", "74DA92F_2016-03-01", "74DCA83_2016-02-29","74DCBCC_2016-03-04", "74DE9A7_2016-03-08","74F8E19_2016-03-04", "74F8E19_2016-03-05","74F9F83_2016-03-04","74F9F83_2016-03-05", "74F9F83_2016-03-07", "0C506E35_C_2021-12-12", "22507B4E_D_2022-02-02", "22507B4E_D_2022-02-03", "23506B4E_G_2022-01-31", "23506B4E_G_2022-02-01", "23506B4E_G_2022-02-02", "23506B4E_G_2022-02-03", "23506B4E_G_2022-02-04", "23506B4E_G_2022-02-05", "23506B4E_G_2022-02-06", "23506B4E_G_2022-02-07", "23506B4E_G_2022-02-08", "23506B4E_G_2022-02-09", "23506B4E_G_2022-02-10", "2C500235_D_2022-02-01", "2C500235_D_2022-02-02", "2C500235_D_2022-02-03", "2C500235_D_2022-02-04", "2C500235_D_2022-02-05", "2C500235_D_2022-02-06", "2C500235_D_2022-02-07", "2C500235_D_2022-02-08", "2C500235_D_2022-02-09", "2C500235_D_2022-02-10", "2C500235_D_2022-02-11", "2C500235_D_2022-02-12", "2C501A35_G_2022-01-31", "2C501A35_G_2022-02-01", "2C501A35_G_2022-02-02", "2C501A35_G_2022-02-03", "2C507735_G_2022-01-31", "2C507735_G_2022-02-01", "2C507735_G_2022-02-02", "2C507735_G_2022-02-03", "2C507735_G_2022-02-04", "2C507735_G_2022-02-05", "2C507735_G_2022-02-06", "2C507735_G_2022-02-07", "2C507735_G_2022-02-08", "2C507735_G_2022-02-09", "2C507735_G_2022-02-10", "2D507235_G_2022-02-01", "2D507235_G_2022-02-02", "2D507235_G_2022-02-03", "2D507235_G_2022-02-04", "2D507235_G_2022-02-05", "2D507235_G_2022-02-06", "2D507235_G_2022-02-07", "2D507235_G_2022-02-08", "2D507235_G_2022-02-09", "2D507235_G_2022-02-10", "2E500235_G_2022-02-01", "2E500235_G_2022-02-02", "2E500235_G_2022-02-03", "2E500235_G_2022-02-04", "2E500235_G_2022-02-05", "2E500235_G_2022-02-06", "2E500235_G_2022-02-07", "2E500235_G_2022-02-08", "2E500235_G_2022-02-09", "2E500235_G_2022-02-10", "31507235_G_2022-01-31", "31507235_G_2022-02-01", "31507235_G_2022-02-02", "31507235_G_2022-02-03", "37506237_D_2022-02-01", "37506237_D_2022-02-02", "37506237_D_2022-02-03", "37506237_D_2022-02-04", "37506237_D_2022-02-05", "37506237_D_2022-02-06", "37506237_D_2022-02-07", "37507537_D_2022-02-02", "37507537_D_2022-02-03", "37507537_D_2022-02-04", "37507537_D_2022-02-05", "37507537_D_2022-02-06", "37507537_D_2022-02-07", "37507537_D_2022-02-08", "37507537_D_2022-02-09", "37507537_D_2022-02-10", "37507537_D_2022-02-11", "37507537_D_2022-02-12", "37507537_D_2022-02-13", "38500437_D_2022-02-01", "38500437_D_2022-02-02", "38506737_G_2022-01-31", "38506737_G_2022-02-01", "38506737_G_2022-02-02", "38506737_G_2022-02-03", "38506737_G_2022-02-04", "38506737_G_2022-02-05", "38506D37_D_2022-02-01", "38506D37_D_2022-02-02", "39500E37_D_2022-02-03", "39500E37_D_2022-02-04", "39500E37_D_2022-02-05", "39500E37_D_2022-02-06", "39500E37_D_2022-02-07", "39500E37_D_2022-02-08", "39500E37_D_2022-02-09", "39500E37_D_2022-02-10", "39500E37_D_2022-02-11", "39500E37_D_2022-02-12", "39500E37_D_2022-02-13", "39500E37_D_2022-02-14", "39506037_G_2022-01-31", "39506037_G_2022-02-01", "39506037_G_2022-02-02", "39506037_G_2022-02-03", "39506037_G_2022-02-04", "39506037_G_2022-02-05", "39506037_G_2022-02-06", "39506037_G_2022-02-07", "39506037_G_2022-02-08", "39506037_G_2022-02-09", "39506037_G_2022-02-10", "53506935_G_2022-01-31", "53506935_G_2022-02-01", "PH_TS_018_2022-03-08",  "PH_TS_018_2022-03-10", "PH_TS_039_2022-03-08", "PH_TS_039_2022-03-09", "PH_TS_046_2022-03-08", "PH_TS_046_2022-03-09", "PH_TS_056_2022-03-08",  "PH_TS_072_2022-03-12", "PH_TS_072_2022-03-16", "PH_TS_072_2022-03-19", "PH_TS_072_2022-03-20", "PH_TS_081_2022-03-08", "PH_TS_081_2022-03-09", "PH_TS_096_2022-03-10", "PH_TS_096_2022-03-11",  "PH_TS_011_2022-03-08", "PH_TS_011_2022-03-12", "PH_TS_011_2022-03-15", "PH_TS_011_2022-03-17", "PH_TS_014_2022-03-07", "PH_TS_014_2022-03-08",  "PH_TS_014_2022-03-09", "PH_TS_014_2022-03-10", "PH_TS_016_2022-03-09", "PH_TS_016_2022-03-10", "PH_TS_074_2022-03-08", "PH_TS_074_2022-03-10", "PH_TS_074_2022-03-12", "PH_TS_079_2022-03-07", "PH_TS_079_2022-03-16", "PH_TS_080_2022-03-09", "PH_TS_080_2022-03-10") == TRUE]
+
+# remove some id-days
+hastMorph_com_final2 <- allbats_Bocas_sp[names(allbats_Bocas_sp) %in%  c("PH_TS_103_2022-03-09", "PH_TS_103_2022-03-17","PH_TS_029_2022-03-08","PH_TS_029_2022-03-09", "PH_TS_029_2022-03-12", "PH_TS_029_2022-03-13", "PH_TS_029_2022-03-14", "PH_TS_029_2022-03-15","PH_TS_029_2022-03-16","PH_TS_029_2022-03-17", "PH_TS_029_2022-03-18", "PH_TS_029_2022-03-19", "PH_TS_080_2022-03-11", "PH_TS_080_2022-03-14", "PH_TS_080_2022-03-15" , "PH_TS_080_2022-03-16","PH_TS_080_2022-03-17", "PH_TS_080_2022-03-18", "PH_TS_080_2022-03-19", "PH_TS_080_2022-03-20", "PH_TS_080_2022-03-21", "PH_TS_100_2022-03-07", "PH_TS_100_2022-03-10", "PH_TS_100_2022-03-11", "PH_TS_100_2022-03-16", "PH_TS_100_2022-03-17", "PH_TS_100_2022-03-18", "PH_TS_112_2022-03-08", "PH_TS_112_2022-03-11", "PH_TS_113_2022-03-09","PH_TS_113_2022-03-12", "PH_TS_120_2022-03-08", "PH_TS_120_2022-03-11", "PHYL1_2023-08-13", "PHYL1_2023-08-14", "PHYL1_2023-08-15", "PHYL1_2023-08-17", "PHYL11_2023-08-15", "PHYL11_2023-08-16", "PHYL11_2023-08-17", "PHYL11_2023-08-18", "PHYL16_2023-08-14", "PHYL16_2023-08-15",  "PHYL21_2023-08-18", "PHYL24_2023-08-15", "PHYL21_2023-08-17", "PHYL25_2023-08-14", "PHYL25_2023-08-15", "PHYL25_2023-08-16", "PHYL25_2023-08-17", "PHYL25_2023-08-18", "PHYL27_2023-08-15", "PHYL28_2023-08-14", "PHYL28_2023-08-15", "PHYL34_2023-08-13", "PHYL34_2023-08-14","PHYL35_2023-08-14",  "PHYL38_2023-08-12", "PHYL38_2023-08-14","PHYL39_2023-08-14", "PHYL4_2023-08-14", "PHYL7_2023-08-16", "PHYL7_2023-08-16","PHYL7_2023-08-17", "PHYL7_2023-08-18","PHYL9_2023-08-14","PHYL9_2023-08-15", "PHYL9_2023-08-17", "PHYL9_2023-08-18") == TRUE]
+
+# convert list to data frame
+allbats_Bocas_clean2 <- c(hastMorph_com_final,hastMorph_com_final2)
+allbats_Bocas_final_df <- do.call(rbind,allbats_Bocas_clean2)
+# remove one individual from 2021
+allbats_Bocas_final_df <- allbats_Bocas_final_df %>%
+  filter(tag_local_identifier!="0C506E35_C")
+
+#check dates
+unique(allbats_Bocas_final_df$date)
+unique(allbats_Bocas_final_df$tag_local_identifier)
+
+# for foraging points which have tlag larger than 1800 sec (30 minutes), because the bat was at the cave, and the gps did not record. We will assign a tlag of 190
+allbats_Bocas_final_df$tlag[which(allbats_Bocas_final_df$behav=="foraging" & allbats_Bocas_final_df$tlag>1800)] <- 190
+allbats_Bocas_final_df <- allbats_Bocas_final_df[!c(allbats_Bocas_final_df$behav=="commuting" & allbats_Bocas_final_df$tlag>1800),]
+
+# add seasons
+allbats_Bocas_final_df$seasons <- "dry"
+allbats_Bocas_final_df$seasons[which(allbats_Bocas_final_df$year_cave=="2023_lagruta" |  allbats_Bocas_final_df$year_cave=="2023_ajcave")] <- "wet"
+
+#filter only foraging
+foraging <- allbats_Bocas_final_df %>%
+  filter(behav=="foraging")
+
+#plot to check quicky foraging points
+mapview::mapView(foraging, xcol="location_long", ycol="location_lat", zcol="tag_local_identifier", legend=F, crs="EPSG:4326") #as points
+```
+
+## Classifiying on and off the island foraging using a determined radios
+
+```{r, results=FALSE}
+library(spatialrisk) 
+
+# set coordinates of middle of the roost
+roostlagruta <- data.frame(location.lat=9.396448, location.long=-82.271541)
+
+# selecting foraging points based on the radios by taking la gruta = colony 1 as a reference point
+roostpointGruta <- points_in_circle(foraging, roostlagruta$location.long,roostlagruta$location.lat, radius = 6500, lon=location_long,lat=location_lat)
+
+# assign position to foraging points
+foraging$position <- "off island"
+foraging$position[which(foraging$event_id %in% roostpointGruta$event_id)] <- "on island"
+
+# plot to see if classification was done right
+ggplot(data=foraging, aes(x=location_long, y=location_lat, color=position))+geom_point()
+
+# summary by foraging on and off the island
+foraging_in_out <- foraging %>%
+  group_by(tag_local_identifier, ID_batday, year_cave, cave, position, sex, seasons)%>%
+  dplyr::summarise(fortime=sum(tlag, na.rm = TRUE)/60)
+
+# total summary of foraging at night
+all_forging <-  foraging %>%
+  group_by(ID_batday, year_cave, cave)%>%
+  dplyr::summarise(totaltime=sum(tlag, na.rm = TRUE)/60)
+
+# join two tables by id_day
+foraging_in_out <- foraging_in_out %>% 
+  left_join(all_forging, by = 'ID_batday')
+
+# add proportion of time
+foraging_in_out <- foraging_in_out%>%
+  mutate(prop.time=fortime/totaltime)
+
+# number individuals to the summary table
+a <- as.data.frame(table(foraging_in_out$year_cave.x,foraging_in_out$tag_local_identifier))
+b <- count(a$Var1[which(a$Freq>0)])
+
+#number of bat foraging on island
+foraging_in <- foraging_in_out %>%
+  filter(position=="on island")
+
+unique(foraging_in$tag_local_identifier)# 48 bats
+
+# summary table of foraging time
+library(Rmisc)
+sum_for_time_cave <-  summarySE(foraging_in_out, measurevar="fortime", groupvars=c("cave.x","position","seasons"))
+sum_for_time_group <-  summarySE(foraging_in_out, measurevar="fortime", groupvars=c("year_cave.x","position","seasons"))
+
+# summary table of proportion of foraging
+sum_for_prop_cave <-  summarySE(foraging_in_out, measurevar="prop.time", groupvars=c("cave.x","position","seasons"))
+sum_for_prop <-  summarySE(foraging_in_out, measurevar="prop.time", groupvars=c("year_cave.x","position","seasons"))
+
+# convert cave_group as factor with defined labels
+sum_for_prop$cave_group_f <- factor(sum_for_prop$year_cave.x, levels = c("2016_lagruta", "2022_lagruta_Feb", "2022_lagruta_Mar", "2022_ajcave","2022_muddycave",  "2023_lagruta", "2023_ajcave"), labels=c("colony 1 2016",  "colony 1 early 2022 ", "colony 1 late 2022","colony 2 2022", "colony 3 2022", "colony 1 2023", "colony 2 2023"))
+
+library(scales)
+# plot time of foraging on and off the island
+inout_plot <- ggplot(data=sum_for_prop, aes(x=cave_group_f, y=prop.time, color=position))+
+  geom_errorbar(width=.1, aes(ymin=prop.time-se, ymax=prop.time+se))+
+  theme_linedraw()+
+  scale_x_discrete(labels=wrap_format(10))+
+  xlab("colony groups")+
+  scale_colour_discrete(name="foraging")+#values=c("#999900", "#CC9933"),
+  facet_wrap(~seasons, scales = "free")+
+  ylab("proportion of time foraging")+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 24),
+        axis.title.y = element_text(size = 24), 
+        strip.text = element_blank())
+inout_plot
+
+# summary table of proportion of time of foraging by sex
+sum_forg_sex <-  summarySE(foraging_in_out, measurevar="prop.time", groupvars=c("year_cave.x","position", "sex"))
+
+#convert cave_group a factor with specific labels
+sum_forg_sex$cave_group_f <- factor(sum_forg_sex$year_cave.x, levels = c("2016_lagruta", "2022_lagruta_Feb", "2022_lagruta_Mar", "2022_ajcave","2022_muddycave",  "2023_lagruta", "2023_ajcave"), labels=c("colony 1 2016",  "colony 1 early 2022 ", "colony 1 late 2022","colony 2 2022", "colony 3 2022", "colony 1 2023", "colony 2 2023"))
+
+# plot time of foraging inside and outside the island
+propsex_plot <- ggplot(data=sum_forg_sex, aes(x=cave_group_f, y=prop.time, color=position))+
+  geom_errorbar(width=.1, aes(ymin=prop.time-se, ymax=prop.time+se))+
+  scale_x_discrete(labels=wrap_format(10))+
+  scale_colour_discrete(name="foraging")+
+  xlab("colony groups")+
+  facet_wrap(~sex, scales = "free")+
+  ylab("proportion of time foraging")+
+  theme_linedraw()+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), 
+        strip.text = element_blank())
+propsex_plot 
+
+
+library(patchwork)
+
+# Figure S1
+((inout_plot/ propsex_plot) + plot_layout(axis_titles = "collect") +  plot_annotation(tag_levels = "A") & theme(plot.tag  = element_text(face = 'bold', size=24), axis.title = element_text(face = 'bold', size=24), axis.title.x = element_text(size = 24), axis.title.y=element_text(size=24), legend.title = element_text(size=18), legend.text = element_text(size=15)))
+
+ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/FigS1.tiff", width=15, height = 15, dpi=300)
+```

@@ -1,0 +1,138 @@
+---
+title: "Cleaning_data_2016"
+author: "Camila Calderon"
+date: "2024-02-18"
+output: html_document
+---
+
+## Load libraries
+
+```{r setup, warning=FALSE, message=FALSE}
+library(move)
+library(tidyverse)
+library(lubridate)
+library(circular)
+library(amt)
+library(move)
+```
+
+## Download data from movebank for Bocas 2016 
+
+```{r}
+me <- movebankLogin(username="", password="")
+studyId <- getMovebankID("Foraging movements of greater spear-nosed bats, Bocas del Toro",me)
+batsmove2016<- getMovebankData(study=studyId, login=me)
+#exclude bat with coordinates far away
+batsmove2016 <- batsmove2016[batsmove2016$tag_id!="146399774",]
+
+# import reference data for 2016 downloaded from directly movebank
+phastref <- read.csv("~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Foraging movements of greater spear-nosed bats, Bocas del Toro-reference-data.csv", header = T)
+
+#convert to dataframe
+batsdf2016 <- as.data.frame(batsmove2016)
+unique(batsdf2016$tag_local_identifier)
+
+# save
+save(batsdf2016, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Bats_Bocas_2016.RData")
+#  write_csv(batsdf2016, "~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/Bats_Bocas_2016.csv")
+```
+
+## Remove individual with incomplete data
+
+```{r, results=FALSE}
+# checking for individuals with complete data
+head(batsdf2016)
+
+ggplot(aes(x=location_long, y=location_lat, color=tag_local_identifier), data=batsdf2016[batsdf2016$tag_local_identifier=="74D8C25",])+geom_point() #leave
+
+ggplot(aes(x=location_long, y=location_lat, color=tag_local_identifier), data=batsdf2016[batsdf2016$tag_local_identifier=="74D972D",])+geom_point() #remove
+
+ggplot(aes(x=location_long, y=location_lat, color=tag_local_identifier), data=batsdf2016[batsdf2016$tag_local_identifier=="74DAF9C",])+geom_point()#leave
+
+ggplot(aes(x=location_long, y=location_lat, color=tag_local_identifier), data=batsdf2016[batsdf2016$tag_local_identifier=="74F7D4C",])+geom_path()#remove
+
+# format times
+batsdf2016$time <- format(batsdf2016$timestamps, format = "%H:%M:%S")
+batsdf2016$date <- date(batsdf2016$timestamps)
+
+# remove individuals with incomplete data for 2016
+batsdf2016<- batsdf2016[!(batsdf2016$tag_local_identifier=="74F7D4C" | batsdf2016$tag_local_identifier== "74D972D"),]
+```
+## Down sample data to every 2 minutes
+
+```{r, results=FALSE}
+# order by ID and timestamp
+batsdf2016 <- batsdf2016[order(batsdf2016$tag_local_identifier, batsdf2016$timestamp),]
+
+# add ID_day column
+batsdf2016$ID<- paste(batsdf2016$tag_local_identifier, date(batsdf2016$timestamp), sep="_")
+
+# split by ID_day
+bats_2016_split <- split(batsdf2016, batsdf2016$ID)
+
+# convert to track object before downsampling
+resample <-  lapply(bats_2016_split, function(x){
+  mk_track(tbl=x, all_cols=T,
+           .x=location_long, .y=location_lat, crs = 32617,
+           .t=timestamp, order_by_ts = T, check_duplicates = T)
+})
+
+# down sample every two minutes
+resample_2 <- lapply(resample, function(x){
+  track_resample(x, rate = minutes(2), tolerance = seconds(1), start = 1)
+})
+
+# check if resampling went well
+lapply(resample_2, function(x){
+  ggplot(aes(x=x_, y=y_), data=x) + geom_point()
+})
+
+# convert to dataframe
+batsdf2016 <- do.call(rbind.data.frame,resample_2)
+batsdf2016 <- as.data.frame(batsdf2016)
+names(batsdf2016)[1] <- "location_long"
+names(batsdf2016)[2] <- "location_lat"
+names(batsdf2016)[3] <- "timestamp"
+
+# save(batsdf2016, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/Bats_Bocas_2016_resampled.RData")
+
+# convert again to move object to calculate all movement variables
+phas2016move <-  move(x=batsdf2016$location_long, y=batsdf2016$location_lat, 
+     time=as.POSIXct(batsdf2016$timestamp, format="%Y-%m-%d %H:%M:%S", tz="UTC"), 
+     data=batsdf2016, proj=CRS("+proj=longlat +ellps=WGS84"), 
+     animal=batsdf2016$tag_local_identifier, sensor="GPS")
+
+# add movement parameters
+moveList <- lapply(split(phas2016move), function(myInd){
+  datechange <- c(0, abs(diff(as.numeric(as.factor(date(myInd@timestamps-(12*60*60)))))))
+  myInd$BatDay <- cumsum(datechange)+1
+  myInd$tlag <- c(NA, move::timeLag(myInd, units="secs"))
+  myInd$step <- c(NA, move::distance(myInd))
+  myInd$tag_ground_speed <- myInd$ground_speed
+  myInd$ground_speed <- c(NA, move::speed(myInd))
+  myInd$angle <- c(NA, angle(myInd))
+  return(myInd)
+})
+
+phas <- moveStack(moveList, forceTz="UTC")
+
+phas <- spTransform(phas, CRS("+proj=utm +zone=17 +datum=WGS84"))
+crds <- as.data.frame(phas@coords)
+phas$x <- crds$coords.x1 #27
+phas$y <- crds$coords.x2 #28
+
+# add sex and group for each individual
+phasprocessed <- as.data.frame(phas)
+phasprocessed$animal_sex <- phastref$animal.sex[match(phasprocessed$tag_local_identifier, phastref$tag.id)]
+
+#split group in refdata
+phastref$cave_group <- paste(sapply(strsplit(phastref$animal.group.id,  '[-]'), `[`, 1), "lagruta", sep="_")
+phasprocessed$cave_group <- phastref$cave_group[match(phasprocessed$tag_local_identifier, phastref$tag.id)]
+phasprocessed$cave <- "lagruta"
+
+# add id_batday column 
+phasprocessed$ID_batday <- paste(phasprocessed$tag_local_identifier, phasprocessed$BatDay, sep="_")
+
+#save final dataframe
+save(phasprocessed, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus2016_resample_clean.RData")
+```

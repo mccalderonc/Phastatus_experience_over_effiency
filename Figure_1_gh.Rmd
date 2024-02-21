@@ -1,0 +1,155 @@
+---
+title: "Figure 1"
+author: "Camila Calderon"
+date: "2024-02-20"
+output: html_document
+---
+
+## Load libraries
+
+```{r setup, results=FALSE}
+library(ggplot2)
+library(ggnewscale) 
+library(ggspatial)
+library(magick)
+library(ggmap)
+library(ggsn)
+library(patchwork) 
+library(gridExtra)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(scales)
+```
+
+## Load data
+
+```{r}
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus_HMMbehaviors.RData")
+names(bats_behaviors)
+```
+
+## Add cave info and seasons to the data frame
+
+```{r pressure, echo=FALSE}
+# add season variable
+bats_behaviors$season <- "dry" 
+bats_behaviors$season[which(bats_behaviors$year_cave=="2023_lagruta" | bats_behaviors$year_cave=="2023_ajcave"| bats_behaviors$year_cave== "2021_lagruta")] <- "wet"
+unique(bats_behaviors$season)
+```
+
+## Plot all caves by season
+
+```{r, results=FALSE}
+# plot using stamen map from Bocas
+register_stadiamaps("personal-token") 
+
+# create a bounding box
+e <- make_bbox(location_long, location_lat, data = bats_behaviors)
+
+# make a data frame with the locations of the colonies
+colonies <- data.frame(colonies=c("lagruta", "ajcave", "muddycave"), location_lat=c( 9.396448,9.440312, 9.387233), location_long=c(-82.271541, -82.274955, -82.264753))
+
+# filter colony 1
+lagrutadf <- bats_behaviors %>%
+  filter(cave=="lagruta")
+
+# plot
+plot_la <- get_stadiamap(e, zoom = 12, maptype = "stamen_toner_lite") %>% ggmap()+
+  coord_sf(crs = "+proj=lonlat") +
+  geom_path(data=lagrutadf, aes(x=location_long, y=location_lat, col=season, linetype=season, alpha=season, group=ID_batday), size=2)+
+  scale_color_manual(values=c( "#21918c", "#5ec962"))+ #440154#9933CC
+  scale_alpha_discrete(range=c(0.2, 1))+
+  new_scale_color() +
+  geom_point(data=colonies[colonies$colonies=="lagruta",], aes(x=location_long, y=location_lat, shape=colonies, size=5, fill=colonies, color=colonies))+
+  scale_shape_manual(values = c(21))+
+  scale_color_manual(values = c("black"))+
+  scale_fill_manual(values = alpha(c("black")))+
+  scalebar(location = "bottomleft",  x.min =-82.4, x.max = -82.54,
+           y.min = 9.23, y.max = 9.26, dist = 10, height = 0.2, transform = TRUE, model = "WGS84", dist_unit = "km", nudge_y= -0.01)+guides(color = "none", size="none")+
+  theme_linedraw()+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), 
+        plot.title= element_text(size = 20))+
+  xlab("")+
+  ylab("")
+
+plot_la
+
+# filert colony 2
+ajdf <- bats_behaviors %>%
+  filter(cave=="ajcave")
+
+# plot
+plot_aj <- get_stadiamap(e, zoom = 12, maptype = "stamen_toner_lite") %>% ggmap()+
+  coord_sf(crs = "+proj=lonlat")+
+  geom_path(data=ajdf, aes(x=location_long, y=location_lat, col=season, linetype=season, alpha=season, group=ID_batday), size=2)+
+  scale_color_manual(values=c("#440154", "#3b528b"))+ #"#33CC33","#339900"
+  scale_alpha_discrete(range=c(0.3, 1))+
+  new_scale_color() +
+  geom_point(data=colonies[colonies$colonies=="ajcave",], aes(x=location_long, y=location_lat, shape=colonies, size=5, fill=colonies, color=colonies))+
+  scale_shape_manual(values = c(22))+
+  scale_color_manual(values = c("black"))+
+  scale_fill_manual(values = alpha(c("black")))+
+  scalebar(location = "bottomleft",  x.min =-82.4, x.max = -82.54,
+           y.min = 9.23, y.max = 9.26, dist = 10, height = 0.2, transform = TRUE, model = "WGS84", dist_unit = "km", nudge_y= -0.01)+guides(color = "none", size="none")+
+  theme_linedraw()+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), 
+        plot.title= element_text(size = 20))
+
+plot_aj
+
+# filter colony 3
+muddydf <- bats_behaviors %>%
+  filter(cave=="muddycave")
+
+# plot
+plot_muddy <- get_stadiamap(e, zoom = 12, maptype = "stamen_toner_lite") %>% ggmap()+
+  coord_sf(crs = "+proj=lonlat")+
+  geom_path(data=muddydf, aes(x=location_long, y=location_lat, col=cave, linetype=season, group=ID_batday), size=2)+
+  scale_color_manual(values=c("#fde725"))+#FF9933
+  #scale_alpha_discrete(range=c(0.4, 1))+
+  new_scale_color() +
+  geom_point(data=colonies[colonies$colonies=="muddycave",], aes(x=location_long, y=location_lat, shape=colonies, size=5, fill=colonies, color=colonies))+
+  scale_shape_manual(values = c(24))+
+  scale_color_manual(values = c("black"))+
+  scale_fill_manual(values = alpha(c("black")))+
+  scalebar(location = "bottomleft",  x.min =-82.4, x.max = -82.54,
+           y.min = 9.23, y.max = 9.26, dist = 10, height = 0.2, transform = TRUE, model = "WGS84", dist_unit = "km", nudge_y= -0.01)+guides(color = "none", size="none")+
+  theme_linedraw()+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), 
+        plot.title= element_text(size = 20))+
+  ylab("")
+
+plot_muddy
+
+
+# plotting panama and box around it
+bbox_panama <- c(left = -83, bottom = 6, right = -77, top = 10)
+# inset map
+inset <- get_stadiamap(bbox_panama, zoom = 8, maptype = "stamen_toner_lite") %>% ggmap()+ 
+  geom_rect(aes(xmin = -82.550092, xmax = -82.155892, ymin = 9.203091, ymax = 9.478718), color = "red", fill = NA)+
+  xlab("")+
+  theme_linedraw()+
+coord_sf(crs = "+proj=lonlat")
+inset
+
+# combine figure 1 with inset
+main_map <- ((inset + plot_la + plot_aj + plot_muddy) + plot_annotation(tag_levels = "A") & 
+               theme(plot.tag  = element_text(face = 'bold', size=24), axis.title = element_text(face = 'bold', size=24), axis.title.x = element_text(size = 24), axis.title.y=element_text(size=24), axis.text.y = element_text(size=14), axis.text.x = element_text(size=14)))
+main_map
+
+# save map
+ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/Fig1.tiff", width=20, height = 15, dpi=300)
+```
