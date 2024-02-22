@@ -616,7 +616,7 @@ dep_foraging_all$sex[which(dep_foraging_all$sex=="mf")] <- "fm"
 unique(dep_foraging_all$sex)
 #save data frame
 save(dep_foraging_all, file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/dep_foraging_all_01.30.2023.RData")
-# load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/Rdata/dep_foraging_all_17.07.2023.RData")
+# load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/dep_foraging_all_01.30.2023.RData")
 
 # cave group as factor
 dep_foraging_all$cave_group <- as.factor(dep_foraging_all$cave_group)
@@ -649,8 +649,8 @@ mod=add_criterion(mod, c("loo", "loo_R2"),
               backend = "cmdstanr",
               control = list(max_treedepth = 10, adapt_delta = .9))
 
-save(mod, file = "~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/mod_depforaging.rda")
-# load("~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Gps/results/models/mod_depforaging.rda")
+#save(mod, file = "~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/mod_depforaging.rda")
+load("~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/mod_depforaging.rda")
 
 pp_check(mod) 
 summary(mod, digits=9) 
@@ -702,7 +702,7 @@ posteriors=ggplot(results,aes(x=Estimate,y=factor(covariate, level=order_level),
   geom_vline(xintercept = 0)+theme_classic()+theme(legend.position = "none")
 posteriors
 
-ggsave("~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/FigS3.tiff", dpi = 300)
+ggsave("~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/FigS3.pdf", dpi = 300)
 ```
 
 ## Plot regression lines for colony 1 and colony 2
@@ -770,9 +770,12 @@ regression_Fig2B <-  ggplot(aes(x = Deptimediff, y = .linpred, color = ordered(c
   legend.text = element_text(size = 14),
   legend.title = element_text(size = 12),
   axis.title= element_text(size = 18),
-  strip.text=element_blank())
+  strip.text=element_blank(), 
+  panel.grid.major.x = element_blank(),
+  panel.grid.major.y = element_blank(),
+  panel.background = element_rect(fill = "white"))
 
 regression_Fig2B
 
-ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/Fig3.tiff", width=15, height = 10, dpi=300)
+ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/Fig3.pdf", dpi=300)
 ```

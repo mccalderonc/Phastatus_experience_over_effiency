@@ -151,5 +151,5 @@ main_map <- ((inset + plot_la + plot_aj + plot_muddy) + plot_annotation(tag_leve
 main_map
 
 # save map
-ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/Fig1.tiff", width=20, height = 15, dpi=300)
+ggsave(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/figures/Fig1.tiff", width=20, height = 15, dpi=300, compression = "lzw")
 ```
