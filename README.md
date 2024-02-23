@@ -12,7 +12,7 @@ The code follows as:
 5. Behavioral_classification
 6. LongCommute_MainlandForaging_Figure1
 7. Simulation_Figure2
-8. Turning_angles_straightness
+8. Turningangles_straightness
 9. Foraging_coordination_Figure3
 10. Figure_1
 11. FigureS2
