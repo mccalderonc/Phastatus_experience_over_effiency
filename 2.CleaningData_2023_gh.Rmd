@@ -21,7 +21,7 @@ library(amt)
 
 ```{r}
 me <- movebankLogin(username="", password="!")
-studyId <- getMovebankID("Greater spear-nosed bat (Phyllostomus hastatus) Bocas 2023",me)
+studyId <- getMovebankID("Greater spear-nosed bat (Phyllostomus hastatus) in Bocas del Toro 2023",me)
 batsBocas<- getMovebankData(study=studyId, login=me)
 n.indiv(batsBocas)
 
