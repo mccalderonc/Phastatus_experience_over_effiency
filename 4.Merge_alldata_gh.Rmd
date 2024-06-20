@@ -17,13 +17,13 @@ library(ggplot2)
 
 ```{r cars}
 # 2016
-load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/Phyllostomus2016_resample_clean.RData")
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript_1/data/Phyllostomus2016_resample_clean.RData")
 
 # 2022
-load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/BatsBocas_nooutliers.RData")
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript_1/data/BatsBocas_nooutliers.RData")
 
 #2023
-load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript/data/PhasBocas_2023_clean.RData")
+load(file="~/ownCloud/PhDLife/P.hastatus/2021-10-Camila-secondseason/Analysis/Manuscript_1/data/PhasBocas_2023_clean.RData")
 
 #check column names
 names(phasprocessed)
